@@ -116,7 +116,9 @@ function cursos_de(string $email, ?array $alumno): array
     $lista = [];
     foreach (cursos_todos() as $slug => $c) {
         $acceso = $alumno['cursos'][$slug] ?? null;
-        if (es_prueba($email) && !empty($c['publicado'])) {
+        // Emails de prueba: acceso sin vencimiento a los cursos publicados, salvo que tengan un
+        // acceso cargado en el panel; en ese caso vale ese (así se pueden probar vencimientos y bajas).
+        if (!$acceso && es_prueba($email) && !empty($c['publicado'])) {
             $acceso = ['desde' => date('Y-m-d'), 'hasta' => null, 'origen' => 'prueba', 'pedido' => '', 'revocado' => false];
         }
         if ($acceso) {
