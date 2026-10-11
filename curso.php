@@ -20,6 +20,12 @@ if (!$curso || (!$vistaPrevia && (!$email || !puede_ver($email, $slug)))) {
     exit;
 }
 
+// Primer ingreso: antes de ver el curso hay que confirmar el nombre para los certificados.
+if (!$vistaPrevia && !nombre_confirmado(alumno($email))) {
+    header('Location: ./', true, 303);
+    exit;
+}
+
 $lecciones = curso_lecciones($curso);
 $ids = array_column($lecciones, 'id');
 

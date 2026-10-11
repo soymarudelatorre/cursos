@@ -305,3 +305,45 @@ function asegurar_certificado(string $email, array $curso): ?array
     });
     return alumno($email)['certificado'][$slug] ?? null;
 }
+
+// ── Nombre para los certificados ──────────────────────────────────────────
+// En el primer ingreso la alumna confirma su nombre completo (se sugiere el de la compra).
+// Después ya no lo puede cambiar: solo desde el panel. Así el certificado sale a nombre
+// de quien hizo el curso y no se modifica a gusto.
+
+/** Nombre con el que se emiten los certificados (confirmado o, si no, el de la compra). */
+function nombre_certificado(?array $alumno): string
+{
+    return trim((string) (($alumno['nombre_certificado'] ?? '') ?: ($alumno['nombre'] ?? '')));
+}
+
+function nombre_confirmado(?array $alumno): bool
+{
+    return !empty($alumno['nombre_confirmado']) && nombre_certificado($alumno) !== '';
+}
+
+/** Valida un nombre completo; devuelve [nombre limpio, error]. */
+function validar_nombre_completo(string $nombre): array
+{
+    $nombre = trim((string) preg_replace('/\s+/u', ' ', $nombre));
+    if (mb_strlen($nombre) < 5 || mb_strlen($nombre) > 80) {
+        return [$nombre, 'Escribí tu nombre y apellido completos (entre 5 y 80 caracteres).'];
+    }
+    if (!str_contains($nombre, ' ')) {
+        return [$nombre, 'Escribí nombre y apellido, separados por un espacio.'];
+    }
+    if (preg_match('/[0-9@<>{}\[\]\\\\\/|_=+*#$%^~`]/u', $nombre)) {
+        return [$nombre, 'El nombre tiene caracteres que no corresponden (números o símbolos).'];
+    }
+    return [$nombre, ''];
+}
+
+/** Lo usa la alumna una sola vez; también el panel para corregirlo. */
+function guardar_nombre_certificado(string $email, string $nombre): void
+{
+    alumno_cambiar($email, function (array $a) use ($nombre) {
+        $a['nombre_certificado'] = $nombre;
+        $a['nombre_confirmado'] ??= date('Y-m-d H:i:s');
+        return $a;
+    });
+}

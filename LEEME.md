@@ -20,6 +20,9 @@ mismo acceso por email que el portal de guías y el Diagnóstico Tech. Reemplaza
   temario y en «Mis cursos». Se guarda como PDF desde el navegador y queda disponible aunque el
   acceso al curso venza. Si el curso no tiene imagen, no entrega certificado.
 - **Calificación con estrellas** (1 a 5) en cada lección y ranking general en el panel.
+- **Nombre del certificado:** en su primer ingreso, cada alumna confirma su nombre completo (se sugiere
+  el de la compra) y ve cómo va a salir. Después ya no lo puede cambiar; si hay un error, lo corregís
+  vos en el panel («Editar nombre del certificado», en la tabla de alumnas).
 - **Compras por WooCommerce** (webhook): el pago habilita el curso y envía el email de
   bienvenida. Un reembolso o una cancelación quitan el acceso, pero el progreso y el
   certificado se conservan.

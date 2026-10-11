@@ -127,11 +127,61 @@ if (!$email) {
 // ── Con sesión: mis cursos ────────────────────────────────────────────────
 $alumno = alumno($email);
 $misCursos = cursos_de($email, $alumno);
-$nombre = trim((string) ($alumno['nombre'] ?? ''));
+
+// ── Primer ingreso: confirmar el nombre para los certificados ─────────────
+// Se pide una sola vez (se sugiere el nombre de la compra). Después solo se cambia desde el panel.
+if ($misCursos && !nombre_confirmado($alumno)) {
+    $errorNombre = '';
+    $sugerido = nombre_certificado($alumno);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nombre_completo'])) {
+        [$sugerido, $errorNombre] = validar_nombre_completo(mb_substr((string) $_POST['nombre_completo'], 0, 120));
+        if (!csrf_valido()) {
+            $errorNombre = 'El formulario venció. Volvé a intentarlo.';
+        } elseif ($errorNombre === '' && empty($_POST['confirmo'])) {
+            $errorNombre = 'Marcá la casilla para confirmar que tu nombre está bien escrito.';
+        } elseif ($errorNombre === '') {
+            guardar_nombre_certificado($email, $sugerido);
+            panel_flash(true, 'Gracias. Tus certificados se van a emitir a nombre de ' . $sugerido . '.');
+            header('Location: ./', true, 303);
+            exit;
+        }
+    }
+    pagina_inicio('Confirmá tu nombre');
+    ?>
+    <section class="contenedor mensaje confirmar-nombre">
+        <p class="hero__etiqueta">Antes de empezar</p>
+        <h1>¿Cómo querés que figure tu nombre?</h1>
+        <div class="paso"><div class="paso__cuerpo">
+            <p>Es el nombre con el que se van a emitir tus <strong>certificados</strong> al terminar cada curso.
+                Revisalo con cuidado: <strong>después no se puede cambiar desde acá</strong>.</p>
+            <?php if ($errorNombre): ?><p class="aviso aviso--error" role="alert"><?= e($errorNombre) ?></p><?php endif; ?>
+            <form method="post" class="formulario">
+                <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+                <label>Nombre y apellido completos
+                    <input type="text" name="nombre_completo" id="nombre-completo" required minlength="5" maxlength="80" autocomplete="name"
+                        value="<?= e($sugerido) ?>" placeholder="Ej.: María Laura González">
+                </label>
+                <p class="confirmar-nombre__vista">Así se va a ver en tu certificado:<br><strong id="nombre-vista"><?= e($sugerido !== '' ? $sugerido : 'Tu nombre') ?></strong></p>
+                <ul class="confirmar-nombre__tips">
+                    <li>Con mayúsculas y acentos donde corresponden.</li>
+                    <li>Tal como querés que lo lea quien vea tu certificado.</li>
+                </ul>
+                <label class="check"><input type="checkbox" name="confirmo" value="1" required> Confirmo que mi nombre está bien escrito.</label>
+                <button class="boton" type="submit">Confirmar y entrar a mis cursos</button>
+            </form>
+        </div></div>
+    </section>
+    <?php
+    pagina_fin('<script>(function(){var i=document.getElementById("nombre-completo"),v=document.getElementById("nombre-vista");'
+        . 'i.addEventListener("input",function(){v.textContent=i.value.trim()||"Tu nombre";});})();</script>');
+    exit;
+}
+$nombre = nombre_certificado($alumno);
 $orden = ['activo' => 0, 'vencido' => 1, 'revocado' => 2];
 uasort($misCursos, fn ($a, $b) => ($orden[$a['estado']] ?? 9) <=> ($orden[$b['estado']] ?? 9));
 
 pagina_inicio('Mis cursos');
+echo panel_aviso(panel_leer_flash());
 ?>
 <section class="contenedor cursos">
     <p class="hero__etiqueta">Mis cursos</p>

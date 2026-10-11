@@ -34,32 +34,20 @@ if (isset($_GET['imagen'])) {
     exit;
 }
 
-// Nombre tal como figura en el certificado (la persona lo puede corregir).
-$error = '';
-if (!$ejemplo && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nuevo = trim(preg_replace('/\s+/', ' ', (string) ($_POST['nombre'] ?? '')));
-    if (!csrf_valido()) {
-        $error = 'El formulario venció. Volvé a intentarlo.';
-    } elseif (mb_strlen($nuevo) < 3 || mb_strlen($nuevo) > 80) {
-        $error = 'Escribí tu nombre y apellido (entre 3 y 80 caracteres).';
-    } else {
-        alumno_cambiar($email, function (array $a) use ($nuevo) {
-            $a['nombre_certificado'] = $nuevo;
-            return $a;
-        });
-        panel_flash(true, 'Tu nombre quedó guardado así: ' . $nuevo);
-        header('Location: certificado.php?c=' . rawurlencode($slug), true, 303);
-        exit;
-    }
+// El nombre lo confirma la alumna en su primer ingreso; después solo se cambia desde el panel.
+if (!$ejemplo && !nombre_confirmado($alumno)) {
+    header('Location: ./', true, 303);
+    exit;
 }
 
-$nombre = $ejemplo ? 'Nombre Apellido de Ejemplo'
-    : trim((string) (($alumno['nombre_certificado'] ?? '') ?: ($alumno['nombre'] ?? '')));
+$nombre = $ejemplo ? 'Nombre Apellido de Ejemplo' : nombre_certificado($alumno);
+$smtp = (array) (config()['smtp'] ?? []);
+$emailContacto = (string) (($smtp['responder_a'] ?? '') ?: ($smtp['usuario'] ?? ''));
 $fecha = $ejemplo ? date('Y-m-d') : (string) $cert['fecha'];
 $ajustes = certificado_ajustes($curso);
 [$ancho, $alto] = getimagesize($rutaImagen) ?: [1600, 1131];
 $csrf = token_csrf();
-$aviso = panel_leer_flash(); // los errores se muestran junto al formulario
+$aviso = panel_leer_flash();
 
 pagina_inicio('Certificado · ' . $curso['titulo']);
 echo panel_aviso($aviso);
@@ -71,24 +59,12 @@ echo panel_aviso($aviso);
         <?php if ($ejemplo): ?>
             <p class="aviso aviso--mini">👁 Ejemplo desde el panel. · <a href="admin-curso.php?c=<?= e($slug) ?>#certificado">Volver a ajustar</a></p>
         <?php endif; ?>
-        <?php if ($nombre === '' && !$ejemplo): ?>
-            <p>Antes de ver tu certificado, contanos cómo querés que figure tu nombre.</p>
-        <?php else: ?>
-            <p>Terminaste <strong><?= e($curso['titulo']) ?></strong>. Para guardarlo como PDF, tocá «Descargar» y elegí <em>Guardar como PDF</em> como impresora.</p>
-            <p class="certificado-pagina__acciones">
-                <button class="boton" type="button" onclick="window.print()">⬇ Descargar / imprimir</button>
-                <?php if (!$ejemplo): ?><button class="enlace-boton" type="button" onclick="document.getElementById('cambiar-nombre').hidden = false">Corregir mi nombre</button><?php endif; ?>
-            </p>
-        <?php endif; ?>
-        <?php if (!$ejemplo): ?>
-            <form method="post" class="formulario certificado-pagina__nombre" id="cambiar-nombre"<?= $nombre !== '' && !$error ? ' hidden' : '' ?>>
-                <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
-                <?php if ($error): ?><p class="aviso aviso--error" role="alert"><?= e($error) ?></p><?php endif; ?>
-                <label>Nombre y apellido, como querés que aparezcan
-                    <input type="text" name="nombre" required minlength="3" maxlength="80" value="<?= e($nombre) ?>">
-                </label>
-                <button class="boton boton--chico" type="submit">Guardar</button>
-            </form>
+        <p>Terminaste <strong><?= e($curso['titulo']) ?></strong>. Para guardarlo como PDF, tocá «Descargar» y elegí <em>Guardar como PDF</em> como impresora.</p>
+        <p class="certificado-pagina__acciones">
+            <button class="boton" type="button" onclick="window.print()">⬇ Descargar / imprimir</button>
+        </p>
+        <?php if (!$ejemplo && $emailContacto !== ''): ?>
+            <p class="certificado-pagina__nota">¿Ves un error en tu nombre? Escribime a <a href="mailto:<?= e($emailContacto) ?>"><?= e($emailContacto) ?></a> y lo corrijo.</p>
         <?php endif; ?>
     </div>
 

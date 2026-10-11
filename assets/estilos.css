@@ -622,3 +622,14 @@ img { max-width: 100%; }
     .leccion__barra .leccion__acciones form { flex: 1; min-width: 0; }
     .leccion__barra .leccion__acciones form .boton { width: 100%; white-space: normal; text-align: center; line-height: 1.3; }
 }
+
+/* Confirmación del nombre (primer ingreso) */
+.confirmar-nombre__vista { margin: 4px 0 0 !important; padding: 14px 16px; border-radius: var(--radio); background: color-mix(in srgb, var(--primario) 6%, var(--superficie)); border: 1px dashed color-mix(in srgb, var(--primario) 35%, transparent); color: var(--suave); font-size: .85rem; }
+.confirmar-nombre__vista strong { display: block; margin-top: 4px; font-family: var(--fuente-titulos); font-size: 1.5rem; color: var(--texto); }
+.confirmar-nombre__tips { margin: 0; padding-left: 18px; color: var(--suave); font-size: .82rem; }
+.certificado-pagina__nota { font-size: .85rem; color: var(--suave); }
+/* Panel: nombre del certificado */
+.nombre-pendiente { color: #8a5a00 !important; }
+.editar-nombre summary { cursor: pointer; font-size: .75rem; color: var(--primario); }
+.editar-nombre form { margin-top: 6px; flex-wrap: nowrap; }
+.editar-nombre input[type=text] { min-width: 160px; }

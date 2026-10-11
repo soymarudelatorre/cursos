@@ -73,6 +73,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $aviso = [$ok, $texto . ($invalidas ? ' Sin email válido (no se cargaron): ' . implode(' · ', $invalidas) : '')];
         }
+    } elseif (isset($_POST['nombre_certificado'], $_POST['alumna'])) {
+        // Solo desde el panel se cambia el nombre de los certificados (la alumna lo confirma una vez).
+        $em = normalizar_email((string) $_POST['alumna']);
+        [$nuevo, $errorNombre] = validar_nombre_completo(mb_substr((string) $_POST['nombre_certificado'], 0, 120));
+        if (!alumno($em)) {
+            $aviso = [false, 'No encontré a esa persona.'];
+        } elseif ($errorNombre !== '') {
+            $aviso = [false, $errorNombre];
+        } else {
+            guardar_nombre_certificado($em, $nuevo);
+            $aviso = [true, "Nombre de los certificados de $em: $nuevo."];
+        }
     } elseif (isset($_POST['acceso_email'], $_POST['acceso_curso'])) {
         $em = normalizar_email((string) $_POST['acceso_email']);
         $slug = (string) $_POST['acceso_curso'];
@@ -140,7 +152,7 @@ foreach ($alumnos as $em => $a) {
         [$hechas, $total, $pct] = $c ? progreso($a, $c) : [0, 0, 0];
         $vistas = $a['progreso'][$slug] ?? [];
         $filas[] = [
-            'email' => $em, 'nombre' => (string) ($a['nombre'] ?? ''), 'slug' => $slug,
+            'email' => $em, 'nombre' => nombre_certificado($a), 'confirmado' => nombre_confirmado($a), 'slug' => $slug,
             'curso' => $c['titulo'] ?? "($slug, borrado)", 'desde' => (string) $acceso['desde'], 'hasta' => $acceso['hasta'],
             'origen' => (string) $acceso['origen'], 'pedido' => (string) ($acceso['pedido'] ?? ''), 'estado' => acceso_estado($acceso),
             'hechas' => $hechas, 'total' => $total, 'pct' => $pct, 'ultima_actividad' => $vistas ? max($vistas) : '',
@@ -265,7 +277,18 @@ pagina_inicio('Panel');
                     <tbody>
                     <?php foreach ($filas as $f): ?>
                         <tr data-buscar="<?= e(mb_strtolower($f['email'] . ' ' . $f['nombre'] . ' ' . $f['curso'])) ?>">
-                            <td><?= e($f['nombre'] ?: '—') ?><br><small><?= e($f['email']) ?></small></td>
+                            <td><?= e($f['nombre'] ?: '—') ?><br><small><?= e($f['email']) ?></small>
+                                <?php if (!$f['confirmado']): ?><br><small class="nombre-pendiente">Nombre sin confirmar todavía</small><?php endif; ?>
+                                <details class="editar-nombre">
+                                    <summary>Editar nombre del certificado</summary>
+                                    <form method="post" class="formulario--en-linea">
+                                        <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+                                        <input type="hidden" name="alumna" value="<?= e($f['email']) ?>">
+                                        <input type="text" name="nombre_certificado" value="<?= e($f['nombre']) ?>" required minlength="5" maxlength="80" aria-label="Nombre del certificado">
+                                        <button class="boton boton--contorno boton--mini" type="submit">Guardar</button>
+                                    </form>
+                                </details>
+                            </td>
                             <td><?= e($f['curso']) ?><br><small><?= $f['origen'] === 'woocommerce' ? 'WooCommerce #' . e($f['pedido']) : 'Manual' ?></small></td>
                             <td><strong><?= $f['pct'] ?> %</strong> <small>(<?= $f['hechas'] ?>/<?= $f['total'] ?>)</small>
                                 <?= $f['certificado'] !== '' ? '<br><small>🏆 Completó el ' . e(fecha_corta($f['certificado'])) . '</small>' : '' ?>
