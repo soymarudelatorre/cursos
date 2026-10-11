@@ -186,7 +186,7 @@ echo panel_aviso(panel_leer_flash());
 <section class="contenedor cursos">
     <p class="hero__etiqueta">Mis cursos</p>
     <h1><?= $nombre !== '' ? '¡Hola, ' . e(explode(' ', $nombre)[0]) . '!' : '¡Hola!' ?></h1>
-    <p class="cursos__bajada">Avanzá a tu ritmo: tu progreso se guarda solo.</p>
+    <p class="cursos__bajada"><?= e(frase_motivadora()) ?></p>
 
     <?php if (!$misCursos): ?>
         <p class="aviso">Todavía no tenés cursos habilitados con <strong><?= e($email) ?></strong>.
@@ -229,7 +229,7 @@ echo panel_aviso(panel_leer_flash());
             </li>
         <?php endforeach; ?>
     </ul>
-    <p class="panel__nota">Sesión iniciada como <?= e($email) ?> · <a href="./?salir=1">Salir</a></p>
+    <p class="cursos__sesion">Sesión iniciada como <?= e($email) ?> · <a href="./?salir=1">Salir</a></p>
 </section>
 <?php
 pagina_fin();

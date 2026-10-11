@@ -178,8 +178,8 @@ function mensaje_hito(int $porcentaje, bool $conCertificado = false): string
         $porcentaje >= 75  => '🔥 Ya pasaste las tres cuartas partes. Lo que aprendiste ya es tuyo.',
         $porcentaje >= 50  => '⭐ Mitad del camino: cada lección suma.',
         $porcentaje >= 25  => '🌱 Ya hiciste un cuarto del curso. Buen ritmo, el tuyo.',
-        $porcentaje > 0    => '✨ Arrancaste. Avanzá a tu ritmo: tu progreso queda guardado.',
-        default            => 'Empezá cuando quieras: tu progreso se guarda solo.',
+        $porcentaje > 0    => '✨ Ya arrancaste. Cada lección suma.',
+        default            => '🚀 Empezá cuando quieras: el primer paso es el más importante.',
     };
 }
 
@@ -228,7 +228,7 @@ function enviar_invitacion(string $email, string $nombre, array $curso, ?string 
         $email,
         crear_enlace($email, DIAS_INVITACION),
         'Ya tenés acceso a «' . $curso['titulo'] . '»',
-        'Ya podés empezar «' . $curso['titulo'] . '». Avanzá a tu ritmo: tu progreso se guarda solo. ' . $vence
+        'Ya podés empezar «' . $curso['titulo'] . '». Avanzá a tu ritmo, a tu manera. ' . $vence
             . ' Este botón vale por ' . DIAS_INVITACION . ' días; después podés entrar siempre pidiendo un enlace con tu email en ' . url_base(),
         'Empezar el curso'
     );
@@ -346,4 +346,23 @@ function guardar_nombre_certificado(string $email, string $nombre): void
         $a['nombre_confirmado'] ??= date('Y-m-d H:i:s');
         return $a;
     });
+}
+
+// ── Frase motivadora de «Mis cursos» ─────────────────────────────────────
+// Cambia una vez por día (la misma para todas ese día). Se pueden reemplazar en
+// config.php → 'frases_motivadoras' => ['…', '…'].
+const FRASES_MOTIVADORAS = [
+    'Pequeños pasos, grandes cambios.',
+    'Lo que aprendés hoy ya es tuyo para siempre.',
+    'No hace falta ir rápido: hace falta no soltar.',
+    'Cada lección que terminás es un paso hacia la versión de vos que estás construyendo.',
+    'La constancia de hoy es el resultado de mañana.',
+    'Empezar ya es la mitad del camino. Seguí.',
+    'Tu futuro se construye con lo que hacés hoy, aunque sea un poco.',
+];
+
+function frase_motivadora(): string
+{
+    $frases = array_values(array_filter(array_map('trim', (array) (config()['frases_motivadoras'] ?? [])))) ?: FRASES_MOTIVADORAS;
+    return $frases[(int) date('z') % count($frases)];
 }

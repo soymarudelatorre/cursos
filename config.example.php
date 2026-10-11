@@ -20,6 +20,9 @@ return [
     // como los ve una alumna). Su progreso se guarda igual que el de cualquier persona.
     'emails_prueba' => ['marieladlt@gmail.com'],
 
+    // Frases de «Mis cursos» (cambia una por día). Vacío = las que vienen de fábrica.
+    'frases_motivadoras' => [],
+
     // Días que la sesión queda abierta en el navegador de cada alumna.
     'dias_sesion' => 30,
 

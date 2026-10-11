@@ -633,3 +633,7 @@ img { max-width: 100%; }
 .editar-nombre summary { cursor: pointer; font-size: .75rem; color: var(--primario); }
 .editar-nombre form { margin-top: 6px; flex-wrap: nowrap; }
 .editar-nombre input[type=text] { min-width: 160px; }
+
+/* Mis cursos: frase motivadora y línea de sesión separada de la lista */
+.cursos__bajada { font-size: 1.05rem; font-style: italic; color: var(--primario); }
+.cursos__sesion { margin: 64px 0 0; padding-top: 18px; border-top: 1px solid color-mix(in srgb, var(--texto) 10%, transparent); font-size: .8rem; color: var(--suave); }
