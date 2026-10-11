@@ -437,3 +437,38 @@ img { max-width: 100%; }
 .editor__modulo:nth-of-type(even) .editor__num { background: var(--rosa); }
 .temario__modulo:nth-of-type(even) summary { background: color-mix(in srgb, var(--rosa) 9%, var(--superficie)); box-shadow: inset 4px 0 0 var(--rosa); }
 .temario__modulo:nth-of-type(even) summary span { color: var(--rosa); }
+
+/* Aviso flotante después de guardar (éxito: verde, se cierra solo; error: rojo, queda) */
+.toast { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; align-items: flex-start; gap: 12px; width: min(420px, calc(100% - 32px)); padding: 14px 14px 14px 16px; border-radius: var(--radio); background: var(--superficie); box-shadow: 0 10px 30px color-mix(in srgb, var(--texto) 18%, transparent); border-left: 5px solid; animation: toast-entra .25s ease-out; transition: opacity .4s, transform .4s; }
+.toast--ok { border-color: #1e7b45; }
+.toast--error { border-color: #b3261e; }
+.toast__icono { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: .85rem; }
+.toast--ok .toast__icono { background: #1e7b45; }
+.toast--error .toast__icono { background: #b3261e; }
+.toast__cuerpo { flex: 1; min-width: 0; font-size: .88rem; line-height: 1.45; }
+.toast__cuerpo strong { display: block; margin-bottom: 2px; }
+.toast--ok .toast__cuerpo strong { color: #1e7b45; }
+.toast--error .toast__cuerpo strong { color: #b3261e; }
+.toast__cuerpo p { margin: 0; color: var(--texto); overflow-wrap: anywhere; }
+.toast__cerrar { flex: none; background: none; border: 0; font-size: 1.3rem; line-height: 1; color: var(--suave); cursor: pointer; padding: 0 2px; }
+.toast--saliendo { opacity: 0; transform: translateY(-8px); }
+@keyframes toast-entra { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 640px) { .toast { top: auto; bottom: 16px; right: 16px; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; transition: none; } }
+@media print { .toast { display: none !important; } }
+
+/* Temario plegable con animación: se desliza a la izquierda y la lección se ensancha de a poco */
+.aula { width: calc(100% - 32px); max-width: 1140px; transition: max-width .35s ease; }
+.aula--sin-temario { width: calc(100% - 32px); max-width: 1400px; }
+.aula__columnas { transition: grid-template-columns .35s ease, gap .35s ease; }
+.temario { transition: transform .35s ease, opacity .25s ease, visibility 0s linear 0s; }
+@media (min-width: 901px) {
+    .aula--sin-temario .aula__columnas { grid-template-columns: 0px minmax(0, 1fr); gap: 0; }
+    .aula--sin-temario .temario { display: block; transform: translateX(-110%); opacity: 0; visibility: hidden; pointer-events: none; overflow: hidden;
+        transition: transform .35s ease, opacity .25s ease, visibility 0s linear .35s; }
+}
+/* Al cargar la página con el temario ya oculto, sin animación */
+.aula--sin-animacion, .aula--sin-animacion * { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .aula, .aula__columnas, .temario { transition: none !important; } }
+/* El temario mantiene su ancho mientras se desliza (no se aplasta el texto) */
+@media (min-width: 901px) { .aula__columnas > .temario { width: 300px; } }

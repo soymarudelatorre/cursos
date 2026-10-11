@@ -116,6 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $c['modulos'] = mover($c['modulos'], $id, ($_POST['dir'] ?? '') === 'arriba' ? -1 : 1);
                     return $c;
                 });
+                $aviso = 'Orden de los módulos actualizado.';
                 break;
 
             case 'borrar_modulo':
@@ -158,6 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     return $c;
                 });
+                $aviso = 'Orden de las lecciones actualizado.';
                 break;
 
             case 'cambiar_modulo_leccion':
@@ -294,12 +296,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     unset($cursos[$slug]);
                     return $cursos;
                 });
+                panel_flash(true, 'Curso «' . $c['titulo'] . '» borrado.');
                 header('Location: admin.php', true, 303);
                 exit;
+
+            default:
+                throw new RuntimeException('Acción desconocida. Recargá la página y volvé a intentarlo.');
         }
-        if ($aviso) {
-            poner_cookie('cursos_aviso', $aviso, 0);
-        }
+        panel_flash(true, $aviso ?: 'Cambios guardados.');
         header('Location: ' . $destino, true, 303);
         exit;
     } catch (Throwable $ex) {
@@ -308,10 +312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Aviso que viene de la acción anterior (después de redirigir).
-if (!$aviso && isset($_COOKIE['cursos_aviso'])) {
-    $aviso = [true, mb_substr((string) $_COOKIE['cursos_aviso'], 0, 300)];
-    poner_cookie('cursos_aviso', '', time() - 3600);
-}
+$aviso = $aviso ?? panel_leer_flash();
 
 $curso = curso($slug);
 $leccion = $leccionId !== '' ? curso_leccion($curso, $leccionId) : null;
@@ -322,9 +323,7 @@ pagina_inicio('Editar · ' . $curso['titulo']);
 ?>
 <section class="contenedor panel tablero editor">
     <?php panel_barra($curso['titulo'], '<a class="boton boton--contorno boton--mini" href="curso.php?c=' . e($slug) . ($leccion ? '&l=' . e($leccion['id']) : '') . '" target="_blank">👁 Ver como alumna</a>'); ?>
-    <?php if ($aviso): ?>
-        <p class="aviso aviso--mini<?= $aviso[0] ? '' : ' aviso--error' ?>" role="status"><?= e($aviso[1]) ?></p>
-    <?php endif; ?>
+    <?= panel_aviso($aviso) ?>
 
 <?php if ($leccion): ?>
     <!-- ── Edición de una lección ─────────────────────────────────────── -->

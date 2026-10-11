@@ -47,6 +47,7 @@ if (!$ejemplo && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $a['nombre_certificado'] = $nuevo;
             return $a;
         });
+        panel_flash(true, 'Tu nombre quedó guardado así: ' . $nuevo);
         header('Location: certificado.php?c=' . rawurlencode($slug), true, 303);
         exit;
     }
@@ -59,8 +60,10 @@ $codigo = $ejemplo ? 'AB12CD34' : (string) $cert['codigo'];
 $ajustes = certificado_ajustes($curso);
 [$ancho, $alto] = getimagesize($rutaImagen) ?: [1600, 1131];
 $csrf = token_csrf();
+$aviso = panel_leer_flash(); // los errores se muestran junto al formulario
 
 pagina_inicio('Certificado · ' . $curso['titulo']);
+echo panel_aviso($aviso);
 ?>
 <section class="contenedor certificado-pagina">
     <div class="no-imprimir">

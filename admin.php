@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'publicado' => false, 'creado' => date('Y-m-d H:i:s'), 'modulos' => [], 'certificado' => []];
                 return $cursos;
             });
+            panel_flash(true, "Curso «{$titulo}» creado. Agregá los módulos y las lecciones.");
             header('Location: admin-curso.php?c=' . rawurlencode($slug), true, 303);
             exit;
         }
@@ -120,6 +121,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Después de una acción: se redirige con el resultado (así F5 no repite la acción).
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    panel_flash($aviso[0] ?? false, $aviso[1] ?? 'No se reconoció la acción. Recargá la página y volvé a intentarlo.');
+    header('Location: admin.php', true, 303);
+    exit;
+}
+$aviso = panel_leer_flash();
+
 $cursos = cursos_todos();
 $alumnos = alumnos_todos();
 
@@ -167,9 +176,7 @@ pagina_inicio('Panel');
 <section class="contenedor panel tablero">
     <?php panel_barra('Panel de cursos', '<a class="boton boton--contorno boton--mini" href="admin.php?exportar=alumnos">Exportar CSV</a>'); ?>
 
-    <?php if ($aviso): ?>
-        <p class="aviso aviso--mini<?= $aviso[0] ? '' : ' aviso--error' ?>" role="status"><?= e($aviso[1]) ?></p>
-    <?php endif; ?>
+    <?= panel_aviso($aviso) ?>
     <?php if (!empty(config()['modo_demo'])): ?>
         <p class="aviso aviso--mini">Modo demostración activo: si falta la contraseña del correo, el enlace de acceso se muestra en pantalla. Ponelo en <code>false</code> al publicar.</p>
     <?php endif; ?>

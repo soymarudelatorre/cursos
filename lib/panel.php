@@ -82,3 +82,46 @@ function fecha_valida(string $fecha): ?string
     $d = DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
     return $d && $d->format('Y-m-d') === $fecha ? $fecha : null;
 }
+
+// ── Avisos después de guardar ─────────────────────────────────────────────
+// Después de cada acción se redirige (así F5 no repite la acción) y el resultado viaja
+// en una cookie de un solo uso. Se muestra como aviso flotante, visible aunque la página
+// haya bajado a otra sección.
+
+const COOKIE_AVISO = 'cursos_aviso';
+
+function panel_flash(bool $ok, string $texto): void
+{
+    poner_cookie(COOKIE_AVISO, ($ok ? '1' : '0') . mb_substr($texto, 0, 600), 0);
+}
+
+/** Aviso pendiente de la acción anterior ([ok, texto]) o null. Se borra al leerlo. */
+function panel_leer_flash(): ?array
+{
+    $valor = (string) ($_COOKIE[COOKIE_AVISO] ?? '');
+    if ($valor === '') {
+        return null;
+    }
+    poner_cookie(COOKIE_AVISO, '', time() - 3600);
+    unset($_COOKIE[COOKIE_AVISO]);
+    return [$valor[0] === '1', mb_substr($valor, 1, 600)];
+}
+
+/** HTML del aviso flotante. Los de éxito se cierran solos; los de error quedan hasta cerrarlos. */
+function panel_aviso(?array $aviso): string
+{
+    if (!$aviso) {
+        return '';
+    }
+    [$ok, $texto] = $aviso;
+    $clase = $ok ? 'toast toast--ok' : 'toast toast--error';
+    $rol = $ok ? 'status' : 'alert';
+    $icono = $ok ? '✓' : '⚠';
+    $titulo = $ok ? 'Listo' : 'No se pudo guardar';
+    return '<div class="' . $clase . '" role="' . $rol . '"' . ($ok ? ' data-autocierre' : '') . '>'
+        . '<span class="toast__icono" aria-hidden="true">' . $icono . '</span>'
+        . '<div class="toast__cuerpo"><strong>' . $titulo . '</strong><p>' . e($texto) . '</p></div>'
+        . '<button type="button" class="toast__cerrar" aria-label="Cerrar aviso" onclick="this.parentNode.remove()">×</button>'
+        . '</div>'
+        . '<script>(function(){var t=document.querySelector(".toast[data-autocierre]");if(t)setTimeout(function(){t.classList.add("toast--saliendo");setTimeout(function(){t.remove()},400)},6000);})();</script>';
+}

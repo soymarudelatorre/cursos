@@ -176,7 +176,10 @@ pagina_fin(<<<'JS'
     }
     var guardado = null;
     try { guardado = localStorage.getItem('cursos_temario_oculto'); } catch (e) {}
+    // Estado guardado: se aplica sin animación y recién después se habilitan las transiciones.
+    aula.classList.add('aula--sin-animacion');
     aplicar(guardado === '1');
+    requestAnimationFrame(function () { requestAnimationFrame(function () { aula.classList.remove('aula--sin-animacion'); }); });
     boton.addEventListener('click', function () {
         var oculto = !aula.classList.contains('aula--sin-temario');
         aplicar(oculto);
