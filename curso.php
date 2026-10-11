@@ -83,8 +83,14 @@ pagina_inicio($curso['titulo']);
             <?php if ($pct === 100 && !empty($curso['certificado']['imagen'])): ?> <a href="certificado.php?c=<?= e($slug) ?>">Ver mi certificado</a><?php endif; ?></p>
     <?php endif; ?>
 
+    <div class="aula__barra">
+        <button class="boton boton--contorno boton--mini" type="button" id="alternar-temario" aria-controls="temario" aria-expanded="true">
+            <span aria-hidden="true">☰</span> <span class="alternar-temario__texto">Ocultar temario</span>
+        </button>
+    </div>
+
     <div class="aula__columnas">
-        <nav class="temario" aria-label="Temario">
+        <nav class="temario" id="temario" aria-label="Temario">
             <?php foreach ($curso['modulos'] ?? [] as $i => $m): ?>
                 <details class="temario__modulo" <?= ($leccion && $leccion['modulo_id'] === $m['id']) || count($curso['modulos']) <= 3 ? 'open' : '' ?>>
                     <summary><span>Módulo <?= $i + 1 ?></span> <?= e($m['titulo']) ?></summary>
@@ -157,4 +163,25 @@ pagina_inicio($curso['titulo']);
     </div>
 </section>
 <?php
-pagina_fin();
+// Temario plegable: más espacio para el video. La preferencia queda guardada en el navegador.
+pagina_fin(<<<'JS'
+<script>
+(function () {
+    var aula = document.querySelector('.aula'), boton = document.getElementById('alternar-temario');
+    if (!aula || !boton) return;
+    function aplicar(oculto) {
+        aula.classList.toggle('aula--sin-temario', oculto);
+        boton.setAttribute('aria-expanded', String(!oculto));
+        boton.querySelector('.alternar-temario__texto').textContent = oculto ? 'Mostrar temario' : 'Ocultar temario';
+    }
+    var guardado = null;
+    try { guardado = localStorage.getItem('cursos_temario_oculto'); } catch (e) {}
+    aplicar(guardado === '1');
+    boton.addEventListener('click', function () {
+        var oculto = !aula.classList.contains('aula--sin-temario');
+        aplicar(oculto);
+        try { localStorage.setItem('cursos_temario_oculto', oculto ? '1' : '0'); } catch (e) {}
+    });
+})();
+</script>
+JS);

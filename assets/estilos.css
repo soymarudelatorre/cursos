@@ -403,3 +403,12 @@ img { max-width: 100%; }
 .leccion__video video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
 .editor__video-opciones { display: grid; gap: 10px; padding: 12px; border: 1px solid color-mix(in srgb, var(--texto) 12%, transparent); border-radius: var(--radio); }
 .editor__video-opciones p { margin: 0; font-size: .82rem; color: var(--suave); }
+
+/* Temario plegable: sin temario, la lección ocupa todo el ancho (y la página se ensancha) */
+.aula__barra { display: flex; justify-content: flex-start; margin-bottom: 12px; }
+.aula--sin-temario { width: min(1400px, 100% - 32px); }
+.aula--sin-temario .aula__columnas { grid-template-columns: minmax(0, 1fr); }
+.aula--sin-temario .temario { display: none; }
+/* Que el video entre completo en la pantalla (sin scroll) aunque la página sea ancha */
+.leccion__video { max-width: calc((100vh - 140px) * 16 / 9); margin-inline: auto; }
+.leccion__video--mini { margin-inline: 0; }
