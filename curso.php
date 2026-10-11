@@ -125,7 +125,7 @@ echo panel_aviso(panel_leer_flash());
                         </summary>
                         <ul class="modulo__archivos">
                             <?php foreach ($m['recursos'] as $r): ?>
-                                <li><a href="recurso.php?c=<?= e($slug) ?>&m=<?= e($m['id']) ?>&r=<?= e($r['id']) ?>"><span class="modulo__descarga" aria-hidden="true">⬇</span> <?= e($r['nombre']) ?> <small><?= e(tamano_legible((int) $r['tamano'])) ?></small></a></li>
+                                <li><a href="recurso.php?c=<?= e($slug) ?>&m=<?= e($m['id']) ?>&r=<?= e($r['id']) ?>"><span class="modulo__descarga" aria-hidden="true">⬇</span> <?= e($r['nombre']) ?></a></li>
                             <?php endforeach; ?>
                         </ul>
                     </details>
