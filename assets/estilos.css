@@ -429,3 +429,11 @@ img { max-width: 100%; }
 .temario__modulo summary { background: color-mix(in srgb, var(--primario) 6%, var(--superficie)); box-shadow: inset 4px 0 0 var(--primario); }
 .temario__modulo:nth-of-type(even) summary { background: color-mix(in srgb, var(--marca) 12%, var(--superficie)); box-shadow: inset 4px 0 0 var(--marca); }
 .temario ol { margin-top: 4px; }
+
+/* Módulos pares: rosa de la misma gama que el magenta (no el rosa viejo / salmón) */
+:root { --rosa: color-mix(in srgb, var(--primario) 65%, #FF5CA8); }
+.editor__modulo:nth-of-type(even) { border-left-color: var(--rosa); }
+.editor__modulo:nth-of-type(even) > .fila-accion:first-child { background: color-mix(in srgb, var(--rosa) 12%, var(--superficie)); border-bottom-color: color-mix(in srgb, var(--rosa) 28%, transparent); }
+.editor__modulo:nth-of-type(even) .editor__num { background: var(--rosa); }
+.temario__modulo:nth-of-type(even) summary { background: color-mix(in srgb, var(--rosa) 9%, var(--superficie)); box-shadow: inset 4px 0 0 var(--rosa); }
+.temario__modulo:nth-of-type(even) summary span { color: var(--rosa); }
