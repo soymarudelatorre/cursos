@@ -203,7 +203,7 @@ echo panel_aviso(panel_leer_flash());
                         <h3>Material para descargar</h3>
                         <ul>
                             <?php foreach ($leccion['recursos'] as $r): ?>
-                                <li><a href="recurso.php?c=<?= e($slug) ?>&l=<?= e($leccion['id']) ?>&r=<?= e($r['id']) ?>">⬇ <?= e($r['nombre']) ?></a> <small><?= e(tamano_legible((int) $r['tamano'])) ?></small></li>
+                                <li><a href="recurso.php?c=<?= e($slug) ?>&l=<?= e($leccion['id']) ?>&r=<?= e($r['id']) ?>">⬇ <?= e($r['nombre']) ?></a></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
