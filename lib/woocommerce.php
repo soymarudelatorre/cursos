@@ -61,6 +61,10 @@ function woo_procesar(array $pedido): string
     $email = normalizar_email((string) ($pedido['billing']['email'] ?? ''));
     $nombre = mb_substr(trim(($pedido['billing']['first_name'] ?? '') . ' ' . ($pedido['billing']['last_name'] ?? '')), 0, 100);
 
+    // Un webhook con el tema equivocado («Producto …» en vez de «Pedido …») manda el producto, no el pedido.
+    if (!isset($pedido['billing']) && !isset($pedido['line_items']) && (isset($pedido['permalink']) || isset($pedido['type']) || ($pedido['status'] ?? '') === 'publish')) {
+        return 'ignorado: llegó un PRODUCTO, no un pedido. En WooCommerce → Webhooks, el tema tiene que ser «Pedido creado» o «Pedido actualizado»';
+    }
     if ($id === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return 'ignorado: pedido sin número o sin email válido';
     }
