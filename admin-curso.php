@@ -592,7 +592,7 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                                 <a class="fila-leccion__titulo" href="<?= e($volver . '&l=' . rawurlencode($l['id'])) ?>" title="<?= e($l['titulo']) ?>"><?= e($l['titulo']) ?></a>
                                 <?php $calif = $resumenCalif[$slug . '|' . $l['id']] ?? null; ?>
                                 <small class="editor__calif"<?= $calif ? ' title="' . $calif['votos'] . ' votos"' : '' ?>><?php if ($calif): ?>★ <?= e(number_format($calif['promedio'], 1, ',', '')) ?> (<?= $calif['votos'] ?>)<?php endif; ?></small>
-                                <small class="fila-leccion__info"><?= video_archivo($l['video']) !== '' ? '🔒🎬' : ($l['video'] !== '' ? '🎬' : '⚠ sin video') ?><?= $l['recursos'] ? ' · 📎 ' . count($l['recursos']) : '' ?></small>
+                                <small class="fila-leccion__info"><?= $l['recursos'] ? '📎' . count($l['recursos']) . ' · ' : '' ?><?= video_archivo($l['video']) !== '' ? '🔒🎬' : ($l['video'] !== '' ? '🎬' : '⚠ sin video') ?></small>
                                 <form method="post" class="editor__orden">
                                     <?= $campoCsrf ?>
                                     <input type="hidden" name="accion" value="mover_leccion">

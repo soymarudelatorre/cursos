@@ -723,7 +723,7 @@ body > main { flex: 1 0 auto; }
 .tarjeta-panel__cabecera:has(.formulario--en-linea) { align-items: center; }
 
 /* Editor del temario: lo de la derecha de cada lección (íconos, flechas, «Mover a…») en columnas alineadas */
-.fila-leccion { display: grid; grid-template-columns: minmax(0, 1fr) 62px 82px 44px 124px; align-items: center; gap: 8px; }
+.fila-leccion { display: grid; grid-template-columns: minmax(0, 1fr) 58px 100px 44px 118px; align-items: center; gap: 8px; }
 .editor__lecciones li > .fila-leccion > * { margin: 0; }
 .fila-leccion__titulo { overflow-wrap: anywhere; }
 .fila-leccion .editor__calif, .fila-leccion__info, .fila-leccion__peso { text-align: right; white-space: nowrap; }
@@ -737,3 +737,13 @@ body > main { flex: 1 0 auto; }
     .fila-leccion .editor__calif:empty { display: none; }
     .fila-leccion .editor__mover { grid-column: 1 / -1; }
 }
+
+/* Columna lateral del editor (Datos del curso, Certificado): letra más chica, a tono con el temario */
+.tablero__lateral .formulario { gap: 10px; }
+.tablero__lateral .formulario label { font-size: .8rem; gap: 4px; }
+.tablero__lateral .formulario label small { font-size: .72rem; }
+.tablero__lateral .formulario input:not([type=checkbox]):not([type=file]),
+.tablero__lateral .formulario select,
+.tablero__lateral .formulario textarea { font-size: .82rem; padding: 7px 10px; background-color: var(--superficie); }
+.tablero__lateral .formulario .check { font-size: .76rem; }
+.tablero__lateral p, .tablero__lateral li { font-size: .78rem; }
