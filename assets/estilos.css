@@ -747,3 +747,23 @@ body > main { flex: 1 0 auto; }
 .tablero__lateral .formulario textarea { font-size: .82rem; padding: 7px 10px; background-color: var(--superficie); }
 .tablero__lateral .formulario .check { font-size: .76rem; }
 .tablero__lateral p, .tablero__lateral li { font-size: .78rem; }
+
+/* Títulos de las tarjetas del panel (Temario, Cursos, Datos del curso…): franja fucsia fuerte */
+.tarjeta-panel > h2, .tarjeta-panel__cabecera { background: var(--primario); border-bottom-color: var(--primario); color: #fff; }
+.tarjeta-panel > h2 small, .tarjeta-panel__cabecera small, .tablero .tarjeta-panel > h2 small, .tablero .tarjeta-panel__cabecera h2 small { color: color-mix(in srgb, #fff 82%, transparent); }
+.tarjeta-panel__cabecera .boton { background: #fff; color: var(--primario); border-color: #fff; }
+.tarjeta-panel__cabecera .boton:hover { background: color-mix(in srgb, #fff 88%, var(--primario)); }
+.tarjeta-panel__cabecera input[type=text], .tarjeta-panel__cabecera .buscador { border-color: transparent; }
+
+/* Barra de formato de los textos largos */
+.formato { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: -2px; }
+.formato button { padding: 3px 9px; font: .78rem var(--fuente-texto); color: var(--texto); background: var(--superficie); border: 1px solid color-mix(in srgb, var(--texto) 18%, transparent); border-radius: 4px; cursor: pointer; }
+.formato button:hover { border-color: var(--primario); color: var(--primario); }
+.formato__ayuda { font-size: .7rem; font-weight: 400; color: var(--suave); margin-left: 4px; }
+.formato__cuenta { margin-left: auto; font-size: .7rem; font-weight: 400; color: var(--suave); }
+
+/* Descripción del curso en «Mis cursos» */
+.curso-tarjeta__descripcion { color: var(--suave); font-size: .95rem; margin-bottom: 12px; }
+.curso-tarjeta__descripcion p { margin: 0 0 8px; }
+.curso-tarjeta__descripcion ul, .leccion__texto ul { margin: 0 0 10px; padding-left: 20px; }
+.curso-tarjeta__descripcion strong { color: var(--texto); }

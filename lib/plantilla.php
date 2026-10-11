@@ -29,7 +29,7 @@ function pagina_inicio(string $titulo, bool $indexar = false): void
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="<?= e($urlFuentes) ?>">
-    <link rel="stylesheet" href="assets/estilos.css?v=33">
+    <link rel="stylesheet" href="assets/estilos.css?v=34">
     <?php if ($marca['logo_url']): ?>
         <link rel="icon" href="<?= e($marca['logo_url'] === 'assets/logo.png' ? 'assets/favicon.png' : $marca['logo_url']) ?>">
     <?php endif; ?>

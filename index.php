@@ -204,7 +204,7 @@ echo panel_aviso(panel_leer_flash());
             <li class="curso-tarjeta<?= $activo ? '' : ' curso-tarjeta--inactiva' ?>">
                 <div class="curso-tarjeta__cuerpo">
                     <h2><?= e($c['titulo']) ?></h2>
-                    <?php if (!empty($c['descripcion'])): ?><p><?= e($c['descripcion']) ?></p><?php endif; ?>
+                    <?php if (!empty($c['descripcion'])): ?><div class="curso-tarjeta__descripcion"><?= texto_html((string) $c['descripcion']) ?></div><?php endif; ?>
                     <div class="barra" role="progressbar" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso">
                         <span style="width: <?= $pct ?>%"></span>
                     </div>

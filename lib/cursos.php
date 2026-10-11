@@ -15,9 +15,33 @@ const CURSOS_ARCHIVO = 'cursos.json';
 const CURSOS_DIR_RECURSOS = 'recursos';
 const CURSOS_EXTENSIONES = ['pdf', 'zip', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'png', 'jpg', 'jpeg', 'webp', 'mp3'];
 
+/** Largo máximo de la descripción del curso (con formato y párrafos). */
+const DESCRIPCION_MAX = 1500;
+
 function cursos_todos(): array
 {
-    return datos_json(CURSOS_ARCHIVO);
+    return array_map('curso_normalizado', datos_json(CURSOS_ARCHIVO));
+}
+
+/**
+ * Módulos, lecciones y archivos como listas 0, 1, 2…: si en algún momento quedaron con
+ * números salteados, las flechas ↑ ↓ y el orden vuelven a funcionar.
+ */
+function curso_normalizado(array $c): array
+{
+    $c['modulos'] = array_values(array_filter((array) ($c['modulos'] ?? []), 'is_array'));
+    foreach ($c['modulos'] as &$m) {
+        $m['lecciones'] = array_values(array_filter((array) ($m['lecciones'] ?? []), 'is_array'));
+        if (isset($m['recursos'])) {
+            $m['recursos'] = array_values((array) $m['recursos']);
+        }
+        foreach ($m['lecciones'] as &$l) {
+            $l['recursos'] = array_values((array) ($l['recursos'] ?? []));
+        }
+        unset($l);
+    }
+    unset($m);
+    return $c;
 }
 
 function curso(string $slug): ?array
@@ -29,7 +53,7 @@ function curso(string $slug): ?array
 /** Modifica el catálogo con bloqueo. $cambiar recibe y devuelve el arreglo de cursos. */
 function cursos_cambiar(callable $cambiar): void
 {
-    datos_json(CURSOS_ARCHIVO, fn (array $cursos) => [$cambiar($cursos), null]);
+    datos_json(CURSOS_ARCHIVO, fn (array $cursos) => [array_map('curso_normalizado', $cambiar(array_map('curso_normalizado', $cursos))), null]);
 }
 
 /** Convierte un título en un identificador para la URL: «Excel desde cero» → excel-desde-cero. */
@@ -191,13 +215,45 @@ function texto_html(string $texto): string
 {
     $html = '';
     foreach (preg_split('/\R{2,}/', trim($texto)) as $parrafo) {
-        if (trim($parrafo) === '') {
-            continue;
+        // Dentro de cada párrafo, las líneas que empiezan con «- » forman una lista con viñetas.
+        $lineas = [];
+        $lista = [];
+        $cerrar = function () use (&$html, &$lineas, &$lista) {
+            if ($lineas) {
+                $html .= '<p>' . implode('<br>' . "\n", array_map('texto_formato', $lineas)) . '</p>';
+                $lineas = [];
+            }
+            if ($lista) {
+                $html .= '<ul>' . implode('', array_map(fn ($l) => '<li>' . texto_formato($l) . '</li>', $lista)) . '</ul>';
+                $lista = [];
+            }
+        };
+        foreach (preg_split('/\R/', trim($parrafo)) as $linea) {
+            if (preg_match('/^\s*[-•]\s+(.*)$/u', $linea, $m)) {
+                if ($lineas) {
+                    $cerrar();
+                }
+                $lista[] = $m[1];
+            } elseif (trim($linea) !== '') {
+                if ($lista) {
+                    $cerrar();
+                }
+                $lineas[] = $linea;
+            }
         }
-        $p = preg_replace('~https?://[^\s<]+[^\s<.,;:!?)\]]~', '<a href="$0" target="_blank" rel="noopener">$0</a>', e($parrafo));
-        $html .= '<p>' . nl2br((string) $p, false) . '</p>';
+        $cerrar();
     }
     return $html;
+}
+
+/** Una línea con formato simple: **negrita**, *cursiva* y enlaces. El resto se escapa. */
+function texto_formato(string $texto): string
+{
+    $t = e($texto);
+    $t = preg_replace('~https?://[^\s<]+[^\s<.,;:!?)\]]~', '<a href="$0" target="_blank" rel="noopener">$0</a>', $t);
+    $t = preg_replace('/\*\*(?=\S)(.+?)(?<=\S)\*\*/u', '<strong>$1</strong>', $t);
+    $t = preg_replace('/(?<![*\w])\*(?=\S)(.+?)(?<=\S)\*(?![*\w])/u', '<em>$1</em>', $t);
+    return (string) $t;
 }
 
 // ── Certificado ───────────────────────────────────────────────────────────

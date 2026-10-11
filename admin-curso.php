@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 cambiar_curso($slug, function (array $c) use ($productos) {
                     $c['titulo'] = trim(mb_substr((string) $_POST['titulo'], 0, 120)) ?: $c['titulo'];
-                    $c['descripcion'] = trim(mb_substr((string) $_POST['descripcion'], 0, 400));
+                    $c['descripcion'] = trim(mb_substr(str_replace("\r\n", "\n", (string) $_POST['descripcion']), 0, DESCRIPCION_MAX));
                     $c['acceso'] = ($_POST['acceso'] ?? '') === 'ilimitado' ? 'ilimitado' : 'anual';
                     $c['productos'] = $productos;
                     $c['publicado'] = !empty($_POST['publicado']);
@@ -457,7 +457,7 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                     <div class="leccion__video leccion__video--mini"><iframe src="<?= e($embed) ?>" title="Vista previa" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
                 <?php endif; ?>
                 <label>Texto de la lección <small>(opcional: una línea en blanco separa párrafos; los enlaces se vuelven clicables)</small>
-                    <textarea name="texto" rows="8"><?= e($leccion['texto']) ?></textarea>
+                    <textarea name="texto" rows="8" data-formato><?= e($leccion['texto']) ?></textarea>
                 </label>
                 <button class="boton boton--mini" type="submit">Guardar lección</button>
             </form>
@@ -657,8 +657,8 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                     <?= $campoCsrf ?>
                     <input type="hidden" name="accion" value="guardar_curso">
                     <label>Nombre <input type="text" name="titulo" required maxlength="120" value="<?= e($curso['titulo']) ?>"></label>
-                    <label>Descripción corta <small>(se ve en «Mis cursos»)</small>
-                        <textarea name="descripcion" rows="3" maxlength="400"><?= e($curso['descripcion']) ?></textarea>
+                    <label>Descripción <small>(se ve en «Mis cursos». Una línea en blanco separa párrafos)</small>
+                        <textarea name="descripcion" rows="7" maxlength="<?= DESCRIPCION_MAX ?>" data-formato><?= e($curso['descripcion']) ?></textarea>
                     </label>
                     <label>Duración del acceso
                         <select name="acceso">
@@ -736,4 +736,38 @@ pagina_inicio('Editar · ' . $curso['titulo']);
 <?php endif; ?>
 </section>
 <?php
-pagina_fin();
+// Botones de formato (negrita, cursiva, lista) para los textos largos. Escriben **…**, *…* y «- ».
+pagina_fin(<<<'JS'
+<script>
+document.querySelectorAll('textarea[data-formato]').forEach(function (area) {
+    var barra = document.createElement('div');
+    barra.className = 'formato';
+    barra.innerHTML = '<button type="button" data-f="b" title="Negrita"><strong>B</strong></button>'
+        + '<button type="button" data-f="i" title="Cursiva"><em>I</em></button>'
+        + '<button type="button" data-f="l" title="Lista con viñetas">• Lista</button>'
+        + '<span class="formato__ayuda">Seleccioná el texto y tocá un botón</span>'
+        + (area.maxLength > 0 ? '<span class="formato__cuenta"></span>' : '');
+    area.parentNode.insertBefore(barra, area);
+    var cuenta = barra.querySelector('.formato__cuenta');
+    function contar() { if (cuenta) cuenta.textContent = area.value.length + ' / ' + area.maxLength; }
+    area.addEventListener('input', contar); contar();
+    barra.addEventListener('click', function (ev) {
+        var b = ev.target.closest('button'); if (!b) return;
+        ev.preventDefault();
+        var ini = area.selectionStart, fin = area.selectionEnd, v = area.value, sel = v.slice(ini, fin), nuevo;
+        if (b.dataset.f === 'l') {
+            var desde = v.lastIndexOf('\n', ini - 1) + 1;
+            sel = v.slice(desde, fin) || 'Elemento';
+            nuevo = sel.split('\n').map(function (l) { return /^\s*[-•]\s+/.test(l) ? l : '- ' + l; }).join('\n');
+            ini = desde;
+        } else {
+            var marca = b.dataset.f === 'b' ? '**' : '*';
+            var limpio = sel.replace(/^\s+|\s+$/g, '') || (b.dataset.f === 'b' ? 'texto en negrita' : 'texto en cursiva');
+            nuevo = sel.match(/^\s*/)[0] + marca + limpio + marca + sel.match(/\s*$/)[0];
+        }
+        area.setRangeText(nuevo, ini, fin, 'select');
+        area.focus(); contar();
+    });
+});
+</script>
+JS);
