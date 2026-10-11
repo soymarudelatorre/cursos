@@ -88,7 +88,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['acceso_email'], $_POST['acceso_curso'])) {
         $em = normalizar_email((string) $_POST['acceso_email']);
         $slug = (string) $_POST['acceso_curso'];
-        if (isset($_POST['revocar'])) {
+        if (isset($_POST['reenviar'])) {
+            $a = alumno($em);
+            $cursoR = curso($slug);
+            if (!$a || !$cursoR || acceso_estado($a['cursos'][$slug] ?? null) !== 'activo') {
+                $aviso = [false, "No se reenvió: $em no tiene acceso vigente a ese curso."];
+            } else {
+                try {
+                    enviar_invitacion($em, (string) ($a['nombre'] ?? ''), $cursoR, $a['cursos'][$slug]['hasta'] ?? null);
+                    $aviso = [true, "Se reenvió el email de acceso a $em."];
+                } catch (Throwable $ex) {
+                    $aviso = [false, "No se pudo enviar el email a $em: " . $ex->getMessage()];
+                }
+            }
+        } elseif (isset($_POST['revocar'])) {
             alumno_revocar($em, $slug, true);
             $aviso = [true, "Se quitó el acceso de $em. Su progreso se conserva."];
         } elseif (isset($_POST['restaurar'])) {
@@ -317,6 +330,9 @@ pagina_inicio('Panel');
                                     <input type="hidden" name="acceso_curso" value="<?= e($f['slug']) ?>">
                                     <input type="date" name="hasta" value="<?= e((string) $f['hasta']) ?>" aria-label="Vencimiento" title="Vencimiento (vacío = sin vencimiento)">
                                     <button class="boton boton--contorno boton--mini" type="submit" title="Guardar la fecha de vencimiento">Guardar</button>
+                                    <?php if ($f['estado'] === 'activo'): ?>
+                                        <button class="boton boton--contorno boton--mini" type="submit" name="reenviar" value="1" onclick="return confirm('¿Reenviar el email de acceso a <?= e($f['email']) ?>?')" title="Reenviar el email de acceso (un enlace nuevo, válido por <?= DIAS_INVITACION ?> días)">✉ Reenviar</button>
+                                    <?php endif; ?>
                                     <?php if ($f['estado'] === 'revocado'): ?>
                                         <button class="boton boton--contorno boton--mini" type="submit" name="restaurar" value="1">Restaurar</button>
                                     <?php else: ?>
