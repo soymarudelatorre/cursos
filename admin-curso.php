@@ -226,7 +226,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'cambiar_modulo_leccion':
                 $moduloNuevo = (string) ($_POST['modulo'] ?? '');
-                cambiar_curso($slug, function (array $c) use ($id, $moduloNuevo) {
+                $nombreDestino = '';
+                cambiar_curso($slug, function (array $c) use ($id, $moduloNuevo, &$nombreDestino) {
+                    foreach ($c['modulos'] as $md) {
+                        if ($md['id'] === $moduloNuevo) {
+                            if (!empty($md['bono'])) {
+                                throw new RuntimeException('Un bono no puede tener lecciones: elegí un módulo común.');
+                            }
+                            $nombreDestino = $md['titulo'];
+                        }
+                    }
+                    if ($nombreDestino === '') {
+                        throw new RuntimeException('No encontré el módulo de destino. Recargá la página y volvé a intentarlo.');
+                    }
                     $mover = null;
                     foreach ($c['modulos'] as &$m) {
                         foreach ($m['lecciones'] as $i => $l) {
@@ -244,8 +256,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     return $c;
                 });
-                $destino = $volver . '&l=' . rawurlencode($id);
-                $aviso = 'Lección movida al final del módulo elegido.';
+                // Desde el temario se vuelve al temario (al módulo de destino); desde la lección, a la lección.
+                $destino = ($_POST['volver'] ?? '') === 'temario' ? $volver . '#modulo-' . rawurlencode($moduloNuevo) : $volver . '&l=' . rawurlencode($id);
+                $aviso = 'Lección movida al final de «' . $nombreDestino . '». Con las flechas ↑ ↓ la ubicás donde quieras.';
                 break;
 
             case 'guardar_leccion':
@@ -487,7 +500,7 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                     <input type="hidden" name="id" value="<?= e($leccion['id']) ?>">
                     <label>Pasar a otro módulo
                         <select name="modulo">
-                            <?php foreach ($curso['modulos'] as $m): ?>
+                            <?php foreach ($curso['modulos'] as $m): if (!empty($m['bono'])) { continue; } ?>
                                 <option value="<?= e($m['id']) ?>"<?= $m['id'] === $leccion['modulo_id'] ? ' selected' : '' ?>><?= e($m['titulo']) ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -511,7 +524,7 @@ pagina_inicio('Editar · ' . $curso['titulo']);
             <h2>Temario</h2>
             <?php if (!$curso['modulos']): ?><p class="vacio">Empezá agregando un módulo (por ejemplo «Introducción»).</p><?php endif; ?>
             <?php $numModulo = 0; foreach ($curso['modulos'] as $i => $m): $esBono = !empty($m['bono']); if (!$esBono) { $numModulo++; } ?>
-                <div class="editor__modulo<?= $esBono ? ' editor__modulo--bono' : '' ?>">
+                <div class="editor__modulo<?= $esBono ? ' editor__modulo--bono' : '' ?>" id="modulo-<?= e($m['id']) ?>">
                     <div class="fila-accion">
                         <form method="post" class="formulario--en-linea editor__titulo">
                             <?= $campoCsrf ?>
@@ -586,6 +599,20 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                                     <button class="enlace-boton" type="submit" name="dir" value="arriba" title="Subir"<?= $j === 0 ? ' disabled' : '' ?>>↑</button>
                                     <button class="enlace-boton" type="submit" name="dir" value="abajo" title="Bajar"<?= $j === count($m['lecciones']) - 1 ? ' disabled' : '' ?>>↓</button>
                                 </form>
+                                <?php $otrosModulos = array_filter($curso['modulos'], fn ($om) => $om['id'] !== $m['id'] && empty($om['bono'])); ?>
+                                <?php if ($otrosModulos): ?>
+                                    <form method="post" class="editor__mover">
+                                        <?= $campoCsrf ?>
+                                        <input type="hidden" name="accion" value="cambiar_modulo_leccion">
+                                        <input type="hidden" name="id" value="<?= e($l['id']) ?>">
+                                        <input type="hidden" name="volver" value="temario">
+                                        <select name="modulo" aria-label="Mover «<?= e($l['titulo']) ?>» a otro módulo" onchange="if (this.value) this.form.submit()">
+                                            <option value="">Mover a…</option>
+                                            <?php foreach ($otrosModulos as $om): ?><option value="<?= e($om['id']) ?>"><?= e($om['titulo']) ?></option><?php endforeach; ?>
+                                        </select>
+                                        <noscript><button class="enlace-boton" type="submit">Mover</button></noscript>
+                                    </form>
+                                <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
                     </ol>
