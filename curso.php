@@ -75,42 +75,59 @@ $base = 'curso.php?c=' . rawurlencode($slug) . '&l=';
 pagina_inicio($curso['titulo']);
 echo panel_aviso(panel_leer_flash());
 ?>
-<section class="contenedor aula">
-    <?php if ($vistaPrevia): ?>
-        <p class="aviso aviso--mini">👁 Vista previa desde el panel: el progreso no se guarda. · <a href="admin-curso.php?c=<?= e($slug) ?>">Volver a editar</a></p>
-    <?php endif; ?>
-    <div class="aula__cabecera">
-        <div>
-            <p class="hero__etiqueta"><a href="./">Mis cursos</a> › Curso</p>
+<?php // A. Franja del curso: migas, nombre, progreso y botón del temario, todo en un bloque. ?>
+<section class="curso-banda">
+    <div class="contenedor curso-banda__fila">
+        <div class="curso-banda__titulo">
+            <p class="curso-banda__migas"><a href="./">Mis cursos</a> › Curso</p>
             <h1><?= e($curso['titulo']) ?></h1>
         </div>
-        <div class="aula__progreso">
-            <div class="barra" role="progressbar" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del curso"><span style="width: <?= $pct ?>%"></span></div>
-            <small><strong><?= $pct ?> %</strong> · <?= $hechas ?> de <?= $total ?> lecciones</small>
+        <div class="curso-banda__derecha">
+            <div class="curso-banda__progreso">
+                <span><strong><?= $pct ?> %</strong> · <?= $hechas ?> de <?= $total ?> lecciones</span>
+                <div class="curso-banda__barra" role="progressbar" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del curso"><span style="width: <?= $pct ?>%"></span></div>
+            </div>
+            <button class="curso-banda__boton" type="button" id="alternar-temario" aria-controls="temario" aria-expanded="true">
+                <span aria-hidden="true">☰</span> <span class="alternar-temario__texto">Ocultar temario</span>
+            </button>
         </div>
     </div>
+</section>
+
+<section class="contenedor aula">
+    <?php if ($vistaPrevia): ?>
+        <p class="aviso aviso--mini aula__aviso">👁 Vista previa desde el panel: el progreso no se guarda. · <a href="admin-curso.php?c=<?= e($slug) ?>">Volver a editar</a></p>
+    <?php endif; ?>
 
     <?php if (isset($_GET['ok'])): ?>
         <p class="aviso aula__hito" role="status"><?= e(mensaje_hito($pct, $hayImagenCertificado)) ?>
             <?php if ($pct === 100 && !empty($curso['certificado']['imagen'])): ?> <a href="certificado.php?c=<?= e($slug) ?>">Ver mi certificado</a><?php endif; ?></p>
     <?php endif; ?>
 
-    <div class="aula__barra">
-        <button class="boton boton--contorno boton--mini" type="button" id="alternar-temario" aria-controls="temario" aria-expanded="true">
-            <span aria-hidden="true">☰</span> <span class="alternar-temario__texto">Ocultar temario</span>
-        </button>
-    </div>
-
     <div class="aula__columnas">
-        <nav class="temario" id="temario" aria-label="Temario">
-            <?php foreach ($curso['modulos'] ?? [] as $i => $m): ?>
-                <details class="temario__modulo" <?= ($leccion && $leccion['modulo_id'] === $m['id']) || count($curso['modulos']) <= 3 ? 'open' : '' ?>>
-                    <summary><span>Módulo <?= $i + 1 ?></span> <?= e($m['titulo']) ?></summary>
+        <?php // B. Temario: el color solo en el módulo donde está la alumna. ?>
+        <nav class="temario" id="temario" aria-label="Contenido del curso">
+            <p class="temario__titulo">Contenido del curso</p>
+            <?php foreach ($curso['modulos'] ?? [] as $i => $m):
+                $idsModulo = array_column($m['lecciones'] ?? [], 'id');
+                $vistasModulo = count(array_intersect($idsModulo, array_keys($vistas)));
+                $actual = $leccion && $leccion['modulo_id'] === $m['id'];
+                $completo = $idsModulo && $vistasModulo === count($idsModulo);
+                ?>
+                <details class="modulo<?= $actual ? ' modulo--actual' : '' ?><?= $completo ? ' modulo--completo' : '' ?>"<?= $actual ? ' open' : '' ?>>
+                    <summary>
+                        <span class="modulo__num" aria-hidden="true"><?= $completo ? '✓' : $i + 1 ?></span>
+                        <span class="modulo__nombre"><?= e($m['titulo']) ?>
+                            <small><?= $idsModulo ? $vistasModulo . ' de ' . count($idsModulo) . (count($idsModulo) === 1 ? ' vista' : ' vistas') : 'Sin lecciones todavía' ?></small></span>
+                    </summary>
                     <ol>
-                        <?php foreach ($m['lecciones'] ?? [] as $l): ?>
+                        <?php foreach ($m['lecciones'] ?? [] as $l):
+                            $esActual = $leccion && $l['id'] === $leccion['id'];
+                            $vista = isset($vistas[$l['id']]);
+                            ?>
                             <li>
-                                <a href="<?= e($base . rawurlencode($l['id'])) ?>"<?= $leccion && $l['id'] === $leccion['id'] ? ' aria-current="page"' : '' ?>>
-                                    <span class="temario__check<?= isset($vistas[$l['id']]) ? ' temario__check--vista' : '' ?>" aria-label="<?= isset($vistas[$l['id']]) ? 'Vista' : 'Pendiente' ?>"><?= isset($vistas[$l['id']]) ? '✓' : '' ?></span>
+                                <a href="<?= e($base . rawurlencode($l['id'])) ?>"<?= $esActual ? ' aria-current="page"' : '' ?>>
+                                    <span class="temario__check<?= $vista ? ' temario__check--vista' : ($esActual ? ' temario__check--actual' : '') ?>" aria-label="<?= $vista ? 'Vista' : 'Pendiente' ?>"><?= $vista ? '✓' : '' ?></span>
                                     <?= e($l['titulo']) ?>
                                 </a>
                             </li>
@@ -137,7 +154,7 @@ echo panel_aviso(panel_leer_flash());
             <?php if (!$leccion): ?>
                 <p class="aviso">Este curso todavía no tiene lecciones.</p>
             <?php else: ?>
-                <p class="leccion__modulo"><?= e($leccion['modulo']) ?></p>
+                <p class="leccion__modulo">Lección <?= $pos + 1 ?> de <?= $total ?> <span>· <?= e($leccion['modulo']) ?></span></p>
                 <h2><?= e($leccion['titulo']) ?></h2>
                 <?php $embed = video_embed((string) ($leccion['video'] ?? '')); ?>
                 <?php if (video_archivo((string) ($leccion['video'] ?? '')) !== ''): ?>
@@ -167,18 +184,20 @@ echo panel_aviso(panel_leer_flash());
                     </div>
                 <?php endif; ?>
 
+                <?php // C. Una sola barra: estrellas a la izquierda, navegación a la derecha. ?>
+                <div class="leccion__barra">
                 <?php $miVoto = $vistaPrevia ? 0 : (int) ($alumno['calificaciones'][$slug][$leccion['id']] ?? 0); ?>
                     <form method="post" class="calificar<?= $vistaPrevia ? ' calificar--vista' : '' ?>">
                         <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
                         <input type="hidden" name="leccion" value="<?= e($leccion['id']) ?>">
-                        <span class="calificar__texto" id="calificar-titulo"><?= $miVoto ? 'Tu calificación:' : '¿Qué te pareció esta lección?' ?></span>
+                        <span class="calificar__texto" id="calificar-titulo"><?= $miVoto ? 'Tu calificación:' : '¿Qué te pareció?' ?></span>
                         <span class="calificar__estrellas" role="group" aria-labelledby="calificar-titulo">
                             <?php for ($n = 5; $n >= 1; $n--): /* orden inverso: el CSS pinta las anteriores al pasar el mouse */ ?>
                                 <button type="submit" name="estrellas" value="<?= $n ?>" class="calificar__estrella<?= $n <= $miVoto ? ' calificar__estrella--llena' : '' ?>"
                                     aria-label="<?= $n ?> de 5 estrellas"<?= $n === $miVoto ? ' aria-pressed="true"' : '' ?> title="<?= $n ?> de 5"<?= $vistaPrevia ? ' disabled' : '' ?>>★</button>
                             <?php endfor; ?>
                         </span>
-                        <?php if ($vistaPrevia): ?><small class="calificar__nota">Vista previa: así lo ven las alumnas (desde el panel no se vota).</small><?php endif; ?>
+                        <?php if ($vistaPrevia): ?><small class="calificar__nota">Vista previa: desde el panel no se vota.</small><?php endif; ?>
                     </form>
 
                 <div class="leccion__acciones">
@@ -195,7 +214,8 @@ echo panel_aviso(panel_leer_flash());
                             <?php endif; ?>
                         </form>
                     <?php endif; ?>
-                    <?php if ($posterior && ($vistaPrevia || isset($vistas[$leccion['id']]))): ?><a class="boton boton--contorno boton--chico" href="<?= e($base . rawurlencode($posterior)) ?>">Siguiente →</a><?php endif; ?>
+                    <?php if ($posterior && ($vistaPrevia || isset($vistas[$leccion['id']]))): ?><a class="boton boton--chico" href="<?= e($base . rawurlencode($posterior)) ?>">Siguiente →</a><?php endif; ?>
+                </div>
                 </div>
             <?php endif; ?>
         </article>
