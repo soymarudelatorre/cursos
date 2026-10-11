@@ -97,7 +97,8 @@ echo panel_aviso($aviso);
             </form>
         <?php endif; ?>
         <div class="certificado<?= $ejemplo ? ' certificado--editable' : '' ?>" id="certificado" style="aspect-ratio: <?= (int) $ancho ?> / <?= (int) $alto ?>; color: <?= e($ajustes['color']) ?>;">
-            <img src="certificado.php?c=<?= e($slug) ?>&imagen=1<?= $ejemplo ? '&vista=1' : '' ?>" alt="" draggable="false">
+            <?php /* v = nombre del archivo: al subir otra imagen cambia la dirección y el navegador no muestra la vieja guardada. */ ?>
+            <img src="certificado.php?c=<?= e($slug) ?>&imagen=1&v=<?= e(pathinfo($imagen, PATHINFO_FILENAME)) ?><?= $ejemplo ? '&vista=1' : '' ?>" alt="" draggable="false">
             <?php foreach ($ajustes['textos'] as $campo => $t): ?>
                 <p class="certificado__texto certificado__<?= $campo ?>" data-campo="<?= $campo ?>"
                     style="left: <?= $t['x'] ?>%; top: <?= $t['y'] ?>%; font-size: <?= $t['tam'] ?>cqw; color: <?= e($t['color']) ?>;"><?= e($textosCert[$campo]) ?></p>
