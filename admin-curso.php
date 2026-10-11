@@ -1,0 +1,529 @@
+<?php
+declare(strict_types=1);
+
+require __DIR__ . '/arranque.php';
+
+/*
+ * Editor de un curso: datos generales, módulos y lecciones (video de YouTube o Vimeo,
+ * texto y archivos descargables) y certificado.
+ * admin-curso.php?c=slug            → curso y temario
+ * admin-curso.php?c=slug&l=leccion  → edición de una lección
+ */
+panel_exigir_ingreso();
+
+$slug = (string) ($_GET['c'] ?? '');
+if (!curso($slug)) {
+    header('Location: admin.php', true, 303);
+    exit;
+}
+
+/** Aplica $cambiar al curso actual (con bloqueo) y guarda. */
+function cambiar_curso(string $slug, callable $cambiar): void
+{
+    cursos_cambiar(function (array $cursos) use ($slug, $cambiar) {
+        if (isset($cursos[$slug])) {
+            $cursos[$slug] = $cambiar($cursos[$slug]);
+        }
+        return $cursos;
+    });
+}
+
+/** Aplica $cambiar a una lección (por referencia dentro de su módulo). */
+function cambiar_leccion(string $slug, string $id, callable $cambiar): void
+{
+    cambiar_curso($slug, function (array $c) use ($id, $cambiar) {
+        foreach ($c['modulos'] as &$m) {
+            foreach ($m['lecciones'] as &$l) {
+                if ($l['id'] === $id) {
+                    $l = $cambiar($l);
+                }
+            }
+        }
+        return $c;
+    });
+}
+
+/** Mueve el elemento $id una posición arriba (-1) o abajo (+1) dentro de $lista. */
+function mover(array $lista, string $id, int $dir): array
+{
+    $i = array_search($id, array_column($lista, 'id'), true);
+    $j = $i === false ? -1 : $i + $dir;
+    if ($j >= 0 && $j < count($lista)) {
+        [$lista[$i], $lista[$j]] = [$lista[$j], $lista[$i]];
+    }
+    return $lista;
+}
+
+$leccionId = (string) ($_GET['l'] ?? '');
+$volver = 'admin-curso.php?c=' . rawurlencode($slug);
+$aviso = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $accion = (string) ($_POST['accion'] ?? '');
+    $id = (string) ($_POST['id'] ?? '');
+    $destino = $volver;
+    try {
+        if (!csrf_valido()) {
+            throw new RuntimeException('El formulario venció. Volvé a intentarlo.');
+        }
+        switch ($accion) {
+            case 'guardar_curso':
+                $productos = array_values(array_unique(array_filter(array_map('trim', preg_split('/[\s,;]+/', (string) $_POST['productos'])))));
+                // Un producto de WooCommerce solo puede habilitar un curso.
+                foreach (cursos_por_producto() as $p => $otro) {
+                    if ($otro !== $slug && in_array((string) $p, $productos, true)) {
+                        throw new RuntimeException("El producto $p ya está asociado a otro curso («" . curso($otro)['titulo'] . '»).');
+                    }
+                }
+                cambiar_curso($slug, function (array $c) use ($productos) {
+                    $c['titulo'] = trim(mb_substr((string) $_POST['titulo'], 0, 120)) ?: $c['titulo'];
+                    $c['descripcion'] = trim(mb_substr((string) $_POST['descripcion'], 0, 400));
+                    $c['acceso'] = ($_POST['acceso'] ?? '') === 'ilimitado' ? 'ilimitado' : 'anual';
+                    $c['productos'] = $productos;
+                    $c['publicado'] = !empty($_POST['publicado']);
+                    return $c;
+                });
+                $aviso = 'Curso guardado.';
+                break;
+
+            case 'agregar_modulo':
+                $titulo = trim(mb_substr((string) $_POST['titulo'], 0, 120));
+                if ($titulo === '') {
+                    throw new RuntimeException('Escribí el nombre del módulo.');
+                }
+                cambiar_curso($slug, function (array $c) use ($titulo) {
+                    $c['modulos'][] = ['id' => nuevo_id(), 'titulo' => $titulo, 'lecciones' => []];
+                    return $c;
+                });
+                $aviso = 'Módulo agregado.';
+                break;
+
+            case 'renombrar_modulo':
+                $titulo = trim(mb_substr((string) $_POST['titulo'], 0, 120));
+                cambiar_curso($slug, function (array $c) use ($id, $titulo) {
+                    foreach ($c['modulos'] as &$m) {
+                        if ($m['id'] === $id && $titulo !== '') {
+                            $m['titulo'] = $titulo;
+                        }
+                    }
+                    return $c;
+                });
+                $aviso = 'Módulo guardado.';
+                break;
+
+            case 'mover_modulo':
+                cambiar_curso($slug, function (array $c) use ($id) {
+                    $c['modulos'] = mover($c['modulos'], $id, ($_POST['dir'] ?? '') === 'arriba' ? -1 : 1);
+                    return $c;
+                });
+                break;
+
+            case 'borrar_modulo':
+                cambiar_curso($slug, function (array $c) use ($id) {
+                    foreach ($c['modulos'] as $i => $m) {
+                        if ($m['id'] === $id) {
+                            if ($m['lecciones']) {
+                                throw new RuntimeException('Para borrar un módulo, primero borrá o mové sus lecciones.');
+                            }
+                            array_splice($c['modulos'], $i, 1);
+                        }
+                    }
+                    return $c;
+                });
+                $aviso = 'Módulo borrado.';
+                break;
+
+            case 'agregar_leccion':
+                $titulo = trim(mb_substr((string) $_POST['titulo'], 0, 150));
+                if ($titulo === '') {
+                    throw new RuntimeException('Escribí el título de la lección.');
+                }
+                $nueva = nuevo_id();
+                cambiar_curso($slug, function (array $c) use ($id, $titulo, $nueva) {
+                    foreach ($c['modulos'] as &$m) {
+                        if ($m['id'] === $id) {
+                            $m['lecciones'][] = ['id' => $nueva, 'titulo' => $titulo, 'video' => '', 'texto' => '', 'recursos' => []];
+                        }
+                    }
+                    return $c;
+                });
+                $destino = $volver . '&l=' . $nueva;
+                $aviso = 'Lección creada. Pegá el enlace del video y guardá.';
+                break;
+
+            case 'mover_leccion':
+                cambiar_curso($slug, function (array $c) use ($id) {
+                    foreach ($c['modulos'] as &$m) {
+                        $m['lecciones'] = mover($m['lecciones'], $id, ($_POST['dir'] ?? '') === 'arriba' ? -1 : 1);
+                    }
+                    return $c;
+                });
+                break;
+
+            case 'cambiar_modulo_leccion':
+                $moduloNuevo = (string) ($_POST['modulo'] ?? '');
+                cambiar_curso($slug, function (array $c) use ($id, $moduloNuevo) {
+                    $mover = null;
+                    foreach ($c['modulos'] as &$m) {
+                        foreach ($m['lecciones'] as $i => $l) {
+                            if ($l['id'] === $id && $m['id'] !== $moduloNuevo) {
+                                $mover = $l;
+                                array_splice($m['lecciones'], $i, 1);
+                            }
+                        }
+                    }
+                    unset($m);
+                    foreach ($c['modulos'] as &$m) {
+                        if ($mover && $m['id'] === $moduloNuevo) {
+                            $m['lecciones'][] = $mover;
+                        }
+                    }
+                    return $c;
+                });
+                $destino = $volver . '&l=' . rawurlencode($id);
+                $aviso = 'Lección movida al final del módulo elegido.';
+                break;
+
+            case 'guardar_leccion':
+                $video = trim(mb_substr((string) $_POST['video'], 0, 300));
+                if ($video !== '' && video_embed($video) === '') {
+                    throw new RuntimeException('No reconozco ese enlace de video. Pegá el enlace de YouTube (youtu.be/… o youtube.com/watch?v=…) o de Vimeo.');
+                }
+                cambiar_leccion($slug, $id, function (array $l) use ($video) {
+                    $l['titulo'] = trim(mb_substr((string) $_POST['titulo'], 0, 150)) ?: $l['titulo'];
+                    $l['video'] = $video;
+                    $l['texto'] = trim(mb_substr((string) $_POST['texto'], 0, 20000));
+                    return $l;
+                });
+                $destino = $volver . '&l=' . rawurlencode($id);
+                $aviso = 'Lección guardada.';
+                break;
+
+            case 'borrar_leccion':
+                $borrados = [];
+                cambiar_curso($slug, function (array $c) use ($id, &$borrados) {
+                    foreach ($c['modulos'] as &$m) {
+                        foreach ($m['lecciones'] as $i => $l) {
+                            if ($l['id'] === $id) {
+                                $borrados = $l['recursos'];
+                                array_splice($m['lecciones'], $i, 1);
+                            }
+                        }
+                    }
+                    return $c;
+                });
+                array_map('recurso_borrar_archivo', $borrados);
+                $aviso = 'Lección borrada.';
+                break;
+
+            case 'subir_recurso':
+                $destino = $volver . '&l=' . rawurlencode($id);
+                $recurso = recurso_guardar_subida($_FILES['archivo'] ?? []);
+                $nombreVisible = trim(mb_substr((string) ($_POST['nombre'] ?? ''), 0, 150));
+                if ($nombreVisible !== '') {
+                    $recurso['nombre'] = $nombreVisible . (pathinfo($nombreVisible, PATHINFO_EXTENSION) === '' ? '.' . pathinfo($recurso['archivo'], PATHINFO_EXTENSION) : '');
+                }
+                cambiar_leccion($slug, $id, function (array $l) use ($recurso) {
+                    $l['recursos'][] = $recurso;
+                    return $l;
+                });
+                $aviso = 'Archivo agregado: ' . $recurso['nombre'];
+                break;
+
+            case 'borrar_recurso':
+                $destino = $volver . '&l=' . rawurlencode($id);
+                $recursoId = (string) ($_POST['recurso'] ?? '');
+                $borrado = null;
+                cambiar_leccion($slug, $id, function (array $l) use ($recursoId, &$borrado) {
+                    foreach ($l['recursos'] as $i => $r) {
+                        if ($r['id'] === $recursoId) {
+                            $borrado = $r;
+                            array_splice($l['recursos'], $i, 1);
+                        }
+                    }
+                    return $l;
+                });
+                if ($borrado) {
+                    recurso_borrar_archivo($borrado);
+                }
+                $aviso = 'Archivo borrado.';
+                break;
+
+            case 'certificado':
+                $imagenNueva = !empty($_FILES['imagen']['name']) ? certificado_guardar_imagen($_FILES['imagen']) : null;
+                $anterior = (string) (curso($slug)['certificado']['imagen'] ?? '');
+                cambiar_curso($slug, function (array $c) use ($imagenNueva) {
+                    $cert = (array) ($c['certificado'] ?? []);
+                    if ($imagenNueva) {
+                        $cert['imagen'] = $imagenNueva;
+                    }
+                    foreach (['nombre_y', 'nombre_tam', 'datos_y'] as $campo) {
+                        $cert[$campo] = (float) str_replace(',', '.', (string) ($_POST[$campo] ?? ''));
+                    }
+                    $cert['color'] = (string) ($_POST['color'] ?? '#000000');
+                    $c['certificado'] = $cert;
+                    return $c;
+                });
+                if ($imagenNueva && $anterior !== '' && is_file(certificados_dir() . '/' . basename($anterior))) {
+                    unlink(certificados_dir() . '/' . basename($anterior));
+                }
+                $destino = $volver . '#certificado';
+                $aviso = 'Certificado guardado.';
+                break;
+
+            case 'borrar_curso':
+                $conAcceso = array_filter(alumnos_todos(), fn ($a) => isset($a['cursos'][$slug]));
+                if ($conAcceso) {
+                    throw new RuntimeException('No se puede borrar: hay ' . count($conAcceso) . ' personas con acceso a este curso. Despublicalo en su lugar.');
+                }
+                if (trim((string) ($_POST['confirmar'] ?? '')) !== 'BORRAR') {
+                    throw new RuntimeException('Para borrar el curso escribí BORRAR en mayúsculas.');
+                }
+                $c = curso($slug);
+                foreach (curso_lecciones($c) as $l) {
+                    array_map('recurso_borrar_archivo', $l['recursos']);
+                }
+                cursos_cambiar(function (array $cursos) use ($slug) {
+                    unset($cursos[$slug]);
+                    return $cursos;
+                });
+                header('Location: admin.php', true, 303);
+                exit;
+        }
+        if ($aviso) {
+            poner_cookie('cursos_aviso', $aviso, 0);
+        }
+        header('Location: ' . $destino, true, 303);
+        exit;
+    } catch (Throwable $ex) {
+        $aviso = [false, $ex->getMessage()];
+    }
+}
+
+// Aviso que viene de la acción anterior (después de redirigir).
+if (!$aviso && isset($_COOKIE['cursos_aviso'])) {
+    $aviso = [true, mb_substr((string) $_COOKIE['cursos_aviso'], 0, 300)];
+    poner_cookie('cursos_aviso', '', time() - 3600);
+}
+
+$curso = curso($slug);
+$leccion = $leccionId !== '' ? curso_leccion($curso, $leccionId) : null;
+$csrf = token_csrf();
+$campoCsrf = '<input type="hidden" name="csrf" value="' . e($csrf) . '">';
+
+pagina_inicio('Editar · ' . $curso['titulo']);
+?>
+<section class="contenedor panel tablero editor">
+    <?php panel_barra($curso['titulo'], '<a class="boton boton--contorno boton--mini" href="curso.php?c=' . e($slug) . ($leccion ? '&l=' . e($leccion['id']) : '') . '" target="_blank">👁 Ver como alumna</a>'); ?>
+    <?php if ($aviso): ?>
+        <p class="aviso aviso--mini<?= $aviso[0] ? '' : ' aviso--error' ?>" role="status"><?= e($aviso[1]) ?></p>
+    <?php endif; ?>
+
+<?php if ($leccion): ?>
+    <!-- ── Edición de una lección ─────────────────────────────────────── -->
+    <p><a href="<?= e($volver) ?>">← Volver al temario</a> · Módulo: <strong><?= e($leccion['modulo']) ?></strong></p>
+    <div class="tablero__columnas">
+        <div class="tarjeta-panel">
+            <h2>Lección</h2>
+            <form method="post" class="formulario">
+                <?= $campoCsrf ?>
+                <input type="hidden" name="accion" value="guardar_leccion">
+                <input type="hidden" name="id" value="<?= e($leccion['id']) ?>">
+                <label>Título <input type="text" name="titulo" required maxlength="150" value="<?= e($leccion['titulo']) ?>"></label>
+                <label>Enlace del video <small>(YouTube «no listado» o Vimeo. Vacío = lección sin video)</small>
+                    <input type="url" name="video" maxlength="300" value="<?= e($leccion['video']) ?>" placeholder="https://youtu.be/…">
+                </label>
+                <?php if ($leccion['video'] !== '' && ($embed = video_embed($leccion['video'])) !== ''): ?>
+                    <div class="leccion__video leccion__video--mini"><iframe src="<?= e($embed) ?>" title="Vista previa" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+                <?php endif; ?>
+                <label>Texto de la lección <small>(opcional: una línea en blanco separa párrafos; los enlaces se vuelven clicables)</small>
+                    <textarea name="texto" rows="8"><?= e($leccion['texto']) ?></textarea>
+                </label>
+                <button class="boton boton--mini" type="submit">Guardar lección</button>
+            </form>
+        </div>
+        <div class="tablero__lateral">
+            <div class="tarjeta-panel">
+                <h2>Archivos descargables</h2>
+                <?php if (!$leccion['recursos']): ?><p class="vacio">Sin archivos.</p><?php endif; ?>
+                <ul class="lista-simple">
+                    <?php foreach ($leccion['recursos'] as $r): ?>
+                        <li class="fila-accion">
+                            <a href="recurso.php?c=<?= e($slug) ?>&l=<?= e($leccion['id']) ?>&r=<?= e($r['id']) ?>"><?= e($r['nombre']) ?></a>
+                            <small><?= e(tamano_legible((int) $r['tamano'])) ?></small>
+                            <form method="post" onsubmit="return confirm('¿Borrar este archivo?')">
+                                <?= $campoCsrf ?>
+                                <input type="hidden" name="accion" value="borrar_recurso">
+                                <input type="hidden" name="id" value="<?= e($leccion['id']) ?>">
+                                <input type="hidden" name="recurso" value="<?= e($r['id']) ?>">
+                                <button class="enlace-boton enlace-boton--peligro" type="submit">Borrar</button>
+                            </form>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <form method="post" enctype="multipart/form-data" class="formulario">
+                    <?= $campoCsrf ?>
+                    <input type="hidden" name="accion" value="subir_recurso">
+                    <input type="hidden" name="id" value="<?= e($leccion['id']) ?>">
+                    <label>Archivo <small>(máx. <?= e((string) ini_get('upload_max_filesize')) ?>: <?= e(implode(', ', CURSOS_EXTENSIONES)) ?>)</small>
+                        <input type="file" name="archivo" required>
+                    </label>
+                    <label>Nombre que ve la alumna <small>(opcional)</small> <input type="text" name="nombre" maxlength="150" placeholder="Plantilla de práctica"></label>
+                    <button class="boton boton--contorno boton--mini" type="submit">Subir archivo</button>
+                </form>
+            </div>
+            <div class="tarjeta-panel">
+                <h2>Mover o borrar</h2>
+                <form method="post" class="formulario">
+                    <?= $campoCsrf ?>
+                    <input type="hidden" name="accion" value="cambiar_modulo_leccion">
+                    <input type="hidden" name="id" value="<?= e($leccion['id']) ?>">
+                    <label>Pasar a otro módulo
+                        <select name="modulo">
+                            <?php foreach ($curso['modulos'] as $m): ?>
+                                <option value="<?= e($m['id']) ?>"<?= $m['id'] === $leccion['modulo_id'] ? ' selected' : '' ?>><?= e($m['titulo']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <button class="boton boton--contorno boton--mini" type="submit">Mover</button>
+                </form>
+                <form method="post" onsubmit="return confirm('¿Borrar la lección y sus archivos? Quienes ya la vieron dejan de tenerla en su progreso.')">
+                    <?= $campoCsrf ?>
+                    <input type="hidden" name="accion" value="borrar_leccion">
+                    <input type="hidden" name="id" value="<?= e($leccion['id']) ?>">
+                    <p><button class="enlace-boton enlace-boton--peligro" type="submit">Borrar esta lección</button></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<?php else: ?>
+    <!-- ── Curso y temario ─────────────────────────────────────────────── -->
+    <div class="tablero__columnas">
+        <div class="tarjeta-panel">
+            <h2>Temario</h2>
+            <?php if (!$curso['modulos']): ?><p class="vacio">Empezá agregando un módulo (por ejemplo «Introducción»).</p><?php endif; ?>
+            <?php foreach ($curso['modulos'] as $i => $m): ?>
+                <div class="editor__modulo">
+                    <div class="fila-accion">
+                        <form method="post" class="formulario--en-linea editor__titulo">
+                            <?= $campoCsrf ?>
+                            <input type="hidden" name="accion" value="renombrar_modulo">
+                            <input type="hidden" name="id" value="<?= e($m['id']) ?>">
+                            <span class="editor__num">Módulo <?= $i + 1 ?></span>
+                            <input type="text" name="titulo" value="<?= e($m['titulo']) ?>" maxlength="120" aria-label="Nombre del módulo">
+                            <button class="boton boton--contorno boton--mini" type="submit">Guardar</button>
+                        </form>
+                        <form method="post" class="editor__orden">
+                            <?= $campoCsrf ?>
+                            <input type="hidden" name="accion" value="mover_modulo">
+                            <input type="hidden" name="id" value="<?= e($m['id']) ?>">
+                            <button class="enlace-boton" type="submit" name="dir" value="arriba" title="Subir"<?= $i === 0 ? ' disabled' : '' ?>>↑</button>
+                            <button class="enlace-boton" type="submit" name="dir" value="abajo" title="Bajar"<?= $i === count($curso['modulos']) - 1 ? ' disabled' : '' ?>>↓</button>
+                        </form>
+                        <?php if (!$m['lecciones']): ?>
+                            <form method="post">
+                                <?= $campoCsrf ?>
+                                <input type="hidden" name="accion" value="borrar_modulo">
+                                <input type="hidden" name="id" value="<?= e($m['id']) ?>">
+                                <button class="enlace-boton enlace-boton--peligro" type="submit">Borrar</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                    <ol class="editor__lecciones">
+                        <?php foreach ($m['lecciones'] as $j => $l): ?>
+                            <li class="fila-accion">
+                                <a href="<?= e($volver . '&l=' . rawurlencode($l['id'])) ?>"><?= e($l['titulo']) ?></a>
+                                <small><?= $l['video'] !== '' ? '🎬' : '⚠ sin video' ?><?= $l['recursos'] ? ' · 📎 ' . count($l['recursos']) : '' ?></small>
+                                <form method="post" class="editor__orden">
+                                    <?= $campoCsrf ?>
+                                    <input type="hidden" name="accion" value="mover_leccion">
+                                    <input type="hidden" name="id" value="<?= e($l['id']) ?>">
+                                    <button class="enlace-boton" type="submit" name="dir" value="arriba" title="Subir"<?= $j === 0 ? ' disabled' : '' ?>>↑</button>
+                                    <button class="enlace-boton" type="submit" name="dir" value="abajo" title="Bajar"<?= $j === count($m['lecciones']) - 1 ? ' disabled' : '' ?>>↓</button>
+                                </form>
+                            </li>
+                        <?php endforeach; ?>
+                    </ol>
+                    <form method="post" class="formulario--en-linea">
+                        <?= $campoCsrf ?>
+                        <input type="hidden" name="accion" value="agregar_leccion">
+                        <input type="hidden" name="id" value="<?= e($m['id']) ?>">
+                        <input type="text" name="titulo" placeholder="Título de la lección nueva" required maxlength="150" aria-label="Título de la lección nueva">
+                        <button class="boton boton--contorno boton--mini" type="submit">+ Lección</button>
+                    </form>
+                </div>
+            <?php endforeach; ?>
+            <form method="post" class="formulario--en-linea editor__nuevo-modulo">
+                <?= $campoCsrf ?>
+                <input type="hidden" name="accion" value="agregar_modulo">
+                <input type="text" name="titulo" placeholder="Nombre del módulo nuevo" required maxlength="120" aria-label="Nombre del módulo nuevo">
+                <button class="boton boton--mini" type="submit">+ Módulo</button>
+            </form>
+        </div>
+
+        <div class="tablero__lateral">
+            <div class="tarjeta-panel">
+                <h2>Datos del curso</h2>
+                <form method="post" class="formulario">
+                    <?= $campoCsrf ?>
+                    <input type="hidden" name="accion" value="guardar_curso">
+                    <label>Nombre <input type="text" name="titulo" required maxlength="120" value="<?= e($curso['titulo']) ?>"></label>
+                    <label>Descripción corta <small>(se ve en «Mis cursos»)</small>
+                        <textarea name="descripcion" rows="3" maxlength="400"><?= e($curso['descripcion']) ?></textarea>
+                    </label>
+                    <label>Duración del acceso
+                        <select name="acceso">
+                            <option value="anual"<?= ($curso['acceso'] ?? 'anual') === 'anual' ? ' selected' : '' ?>><?= MESES_ACCESO_ANUAL ?> meses desde la fecha de pago</option>
+                            <option value="ilimitado"<?= ($curso['acceso'] ?? '') === 'ilimitado' ? ' selected' : '' ?>>Mientras el curso esté disponible (sin vencimiento)</option>
+                        </select>
+                    </label>
+                    <label>Productos de WooCommerce que habilitan este curso <small>(ID o SKU, separados por coma)</small>
+                        <input type="text" name="productos" value="<?= e(implode(', ', $curso['productos'] ?? [])) ?>" placeholder="123">
+                    </label>
+                    <label class="check"><input type="checkbox" name="publicado" value="1"<?= !empty($curso['publicado']) ? ' checked' : '' ?>> Publicado (las alumnas con acceso lo pueden abrir)</label>
+                    <button class="boton boton--mini" type="submit">Guardar</button>
+                </form>
+                <p class="nota">Cambiar la duración no modifica los accesos ya dados: cada uno conserva su fecha.</p>
+            </div>
+
+            <div class="tarjeta-panel" id="certificado">
+                <h2>Certificado</h2>
+                <?php $aj = certificado_ajustes($curso); $tieneImagen = !empty($curso['certificado']['imagen']); ?>
+                <p class="nota">Subí tu diseño como imagen (PNG o JPG, idealmente 2000 px de ancho) <strong>sin</strong> nombre ni fecha:
+                    se escriben encima. Se habilita al completar el 100 % de las lecciones.</p>
+                <form method="post" enctype="multipart/form-data" class="formulario">
+                    <?= $campoCsrf ?>
+                    <input type="hidden" name="accion" value="certificado">
+                    <label><?= $tieneImagen ? 'Reemplazar imagen' : 'Imagen del certificado' ?>
+                        <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp"<?= $tieneImagen ? '' : ' required' ?>>
+                    </label>
+                    <div class="editor__ajustes">
+                        <label>Nombre: altura (% desde arriba) <input type="number" name="nombre_y" min="0" max="95" step="0.5" value="<?= e((string) $aj['nombre_y']) ?>"></label>
+                        <label>Nombre: tamaño <input type="number" name="nombre_tam" min="1" max="10" step="0.1" value="<?= e((string) $aj['nombre_tam']) ?>"></label>
+                        <label>Fecha y código: altura (%) <input type="number" name="datos_y" min="0" max="98" step="0.5" value="<?= e((string) $aj['datos_y']) ?>"></label>
+                        <label>Color del texto <input type="color" name="color" value="<?= e($aj['color']) ?>"></label>
+                    </div>
+                    <button class="boton boton--mini" type="submit">Guardar certificado</button>
+                </form>
+                <?php if ($tieneImagen): ?>
+                    <p><a href="certificado.php?c=<?= e($slug) ?>&vista=1" target="_blank">👁 Ver un ejemplo con nombre ficticio</a></p>
+                <?php endif; ?>
+            </div>
+
+            <details class="herramientas">
+                <summary>Borrar el curso</summary>
+                <form method="post" class="formulario">
+                    <?= $campoCsrf ?>
+                    <input type="hidden" name="accion" value="borrar_curso">
+                    <p class="nota">Solo se puede borrar si nadie tiene acceso. Si ya vendiste, despublicalo.</p>
+                    <label>Escribí BORRAR para confirmar <input type="text" name="confirmar" autocomplete="off"></label>
+                    <button class="enlace-boton enlace-boton--peligro" type="submit">Borrar curso y sus archivos</button>
+                </form>
+            </details>
+        </div>
+    </div>
+<?php endif; ?>
+</section>
+<?php
+pagina_fin();
