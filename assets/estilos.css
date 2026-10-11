@@ -412,3 +412,20 @@ img { max-width: 100%; }
 /* Que el video entre completo en la pantalla (sin scroll) aunque la página sea ancha */
 .leccion__video { max-width: calc((100vh - 140px) * 16 / 9); margin-inline: auto; }
 .leccion__video--mini { margin-inline: 0; }
+
+/* Módulos con color: cabecera teñida, franja a la izquierda y número en una etiqueta */
+.editor__modulo { padding: 0; overflow: hidden; border-left: 4px solid var(--primario); margin-bottom: 16px; }
+.editor__modulo > .fila-accion:first-child { padding: 10px 14px; background: color-mix(in srgb, var(--primario) 10%, var(--superficie)); border-bottom: 1px solid color-mix(in srgb, var(--primario) 22%, transparent); }
+.editor__modulo > .fila-accion:first-child input[type=text] { background: var(--superficie); font-weight: 600; }
+.editor__modulo > .editor__lecciones { margin: 12px 14px 0 18px; }
+.editor__modulo > form:last-child { margin: 12px 14px 14px; }
+.editor__num { flex: none; padding: 3px 10px; border-radius: 999px; background: var(--primario); color: #fff; letter-spacing: .06em; white-space: nowrap; }
+.editor__modulo:nth-of-type(even) { border-left-color: var(--marca); }
+.editor__modulo:nth-of-type(even) > .fila-accion:first-child { background: color-mix(in srgb, var(--marca) 16%, var(--superficie)); }
+.editor__modulo:nth-of-type(even) .editor__num { background: color-mix(in srgb, var(--marca) 75%, var(--primario)); }
+
+/* Temario de la alumna: misma lógica, más suave */
+.temario__modulo + .temario__modulo { border-top: 1px solid color-mix(in srgb, var(--texto) 8%, transparent); }
+.temario__modulo summary { background: color-mix(in srgb, var(--primario) 6%, var(--superficie)); box-shadow: inset 4px 0 0 var(--primario); }
+.temario__modulo:nth-of-type(even) summary { background: color-mix(in srgb, var(--marca) 12%, var(--superficie)); box-shadow: inset 4px 0 0 var(--marca); }
+.temario ol { margin-top: 4px; }
