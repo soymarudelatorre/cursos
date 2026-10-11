@@ -117,10 +117,11 @@ function enviar_email(string $para, string $nombrePara, string $asunto, string $
 }
 
 /**
- * Email con un saludo, un párrafo, un botón y el enlace en texto plano.
- * $intro va en texto (se escapa); el enlace vence según lo que diga $intro.
+ * Email con logo, saludo, un párrafo, un botón y una nota chica debajo.
+ * $intro y $nota van en texto (se escapan). El enlace largo queda escondido detrás de «tocá acá»,
+ * solo como respaldo si el botón no abre.
  */
-function enviar_email_boton(string $nombre, string $email, string $enlace, string $asunto, string $intro, string $textoBoton): void
+function enviar_email_boton(string $nombre, string $email, string $enlace, string $asunto, string $intro, string $textoBoton, string $nota = '', string $pie = 'Si no pediste este correo, podés ignorarlo.'): void
 {
     $cfg = config();
     $marca = $cfg['marca'];
@@ -128,29 +129,45 @@ function enviar_email_boton(string $nombre, string $email, string $enlace, strin
     $saludo = $nombre !== '' ? '¡Hola, ' . e($nombre) . '!' : '¡Hola!';
     $url = e($enlace);
     $sitio = e($marca['nombre']);
+    $lema = e((string) ($marca['lema'] ?? ''));
     $parrafo = e($intro);
     $boton = e($textoBoton);
+    $notaHtml = $nota !== '' ? '<p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#555058;">' . e($nota) . '</p>' : '';
+    $pieHtml = e($pie);
+
+    // El logo tiene que ser una dirección completa (https://…): el email se lee fuera del sitio.
+    $logo = (string) ($marca['logo_url'] ?? '');
+    if ($logo !== '' && !preg_match('~^https?://~', $logo)) {
+        $logo = url_base() . ltrim($logo, '/');
+    }
+    $cabecera = $logo !== ''
+        ? '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr>'
+            . '<td style="padding-right:12px;vertical-align:middle;"><img src="' . e($logo) . '" width="52" height="52" alt="' . $sitio . '" style="display:block;border:0;border-radius:50%;"></td>'
+            . '<td style="vertical-align:middle;"><p style="margin:0;font-size:16px;font-weight:bold;color:#000;">' . $sitio . '</p>'
+            . ($lema !== '' ? '<p style="margin:2px 0 0;font-size:13px;color:#555058;">' . $lema . '</p>' : '') . '</td>'
+            . '</tr></table>'
+        : '<p style="margin:0 0 20px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:' . $color . ';font-weight:bold;">' . $sitio . '</p>';
 
     $html = <<<HTML
 <!doctype html>
 <html lang="es"><body style="margin:0;background:#F8F7FA;font-family:Arial,Helvetica,sans-serif;color:#000;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8F7FA;padding:32px 16px;">
 <tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:6px;padding:36px 32px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:6px;border-top:4px solid {$color};padding:32px 32px 28px;">
 <tr><td>
-<p style="margin:0 0 8px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:{$color};font-weight:bold;">{$sitio}</p>
-<h1 style="margin:0 0 16px;font-size:24px;line-height:1.3;">{$saludo}</h1>
-<p style="margin:0 0 24px;font-size:16px;line-height:1.6;">{$parrafo}</p>
-<p style="margin:0 0 28px;"><a href="{$url}" style="display:inline-block;background:{$color};color:#fff;text-decoration:none;font-weight:bold;font-size:16px;padding:14px 28px;border-radius:6px;">{$boton}</a></p>
-<p style="margin:0;font-size:13px;line-height:1.6;color:#555058;">Si el botón no funciona, copiá este enlace en tu navegador:<br><a href="{$url}" style="color:{$color};word-break:break-all;">{$url}</a></p>
-<p style="margin:24px 0 0;font-size:13px;color:#555058;">Si no pediste este correo, podés ignorarlo.</p>
+{$cabecera}
+<h1 style="margin:0 0 14px;font-size:24px;line-height:1.3;">{$saludo}</h1>
+<p style="margin:0 0 26px;font-size:16px;line-height:1.6;">{$parrafo}</p>
+<p style="margin:0 0 26px;"><a href="{$url}" style="display:inline-block;background:{$color};color:#fff;text-decoration:none;font-weight:bold;font-size:16px;padding:14px 28px;border-radius:6px;">{$boton}</a></p>
+{$notaHtml}
+<p style="margin:22px 0 0;padding-top:14px;border-top:1px solid #EEE;font-size:11px;line-height:1.5;color:#8A858C;">Si el botón no abre, <a href="{$url}" style="color:#8A858C;">tocá acá</a>. {$pieHtml}</p>
 </td></tr></table>
 </td></tr></table>
 </body></html>
 HTML;
 
-    $texto = ($nombre !== '' ? "¡Hola, $nombre!" : '¡Hola!') . "\n\n$intro\n\nEnlace:\n$enlace\n\n"
-        . "Si no pediste este correo, podés ignorarlo.\n\n" . $marca['nombre'];
+    $texto = ($nombre !== '' ? "¡Hola, $nombre!" : '¡Hola!') . "\n\n$intro\n\n$textoBoton:\n$enlace\n\n"
+        . ($nota !== '' ? "$nota\n\n" : '') . "$pie\n\n" . $marca['nombre'];
 
     enviar_email($email, $nombre, $asunto, $html, $texto);
 }

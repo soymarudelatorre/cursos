@@ -230,9 +230,10 @@ function enviar_invitacion(string $email, string $nombre, array $curso, ?string 
         $email,
         crear_enlace($email, DIAS_INVITACION),
         'Ya tenés acceso a «' . $curso['titulo'] . '»',
-        'Ya podés empezar «' . $curso['titulo'] . '». Avanzá a tu ritmo, a tu manera. ' . $vence
-            . ' Este botón vale por ' . DIAS_INVITACION . ' días; después podés entrar siempre pidiendo un enlace con tu email en ' . url_base(),
-        'Empezar el curso'
+        'Ya podés empezar «' . $curso['titulo'] . '». Avanzá a tu ritmo, a tu manera. ' . $vence,
+        'Empezar el curso',
+        'Este botón vale por ' . DIAS_INVITACION . ' días. Después entrás siempre desde ' . rtrim(preg_replace('~^https?://(www\.)?~', '', url_base()), '/') . ' con tu email.',
+        'Recibiste este correo porque se habilitó tu acceso a un curso.'
     );
 }
 
