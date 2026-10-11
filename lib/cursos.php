@@ -216,7 +216,8 @@ function certificados_dir(): string
  * y vertical (y) en % de la imagen (el texto queda centrado en ese punto) y tamaño en % del ancho.
  */
 const CERT_TEXTOS = [
-    'nombre' => ['etiqueta' => 'Nombre',               'x' => 50, 'y' => 45, 'tam' => 4.0],
+    'curso'  => ['etiqueta' => 'Nombre del curso',     'x' => 50, 'y' => 35, 'tam' => 2.2],
+    'nombre' => ['etiqueta' => 'Nombre de la alumna',  'x' => 50, 'y' => 45, 'tam' => 4.0],
     'fecha'  => ['etiqueta' => 'Fecha',                'x' => 50, 'y' => 72, 'tam' => 1.4],
 ];
 
@@ -237,10 +238,16 @@ function certificado_ajustes(array $curso): array
             'x'   => round(min(100, max(0, (float) ($t['x'] ?? $def['x']))), 1),
             'y'   => round(min(100, max(0, (float) ($t['y'] ?? $def['y']))), 1),
             'tam' => round(min(10, max(0.5, (float) ($t['tam'] ?? $def['tam']))), 2),
+            // Color propio de cada texto; si no tiene, el color general del certificado.
+            'color' => preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($t['color'] ?? '')) ? (string) $t['color'] : null,
         ];
     }
     $color = (string) ($c['color'] ?? '');
-    return ['textos' => $textos, 'color' => preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : '#000000'];
+    $general = preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : '#000000';
+    foreach ($textos as &$t) {
+        $t['color'] ??= $general;
+    }
+    return ['textos' => $textos, 'color' => $general];
 }
 
 /** Lee del formulario las posiciones y tamaños (campos nombre_x, nombre_y, nombre_tam, …). */
@@ -252,6 +259,9 @@ function certificado_ajustes_de_post(array $post): array
             if (isset($post["{$campo}_{$dato}"])) {
                 $textos[$campo][$dato] = (float) str_replace(',', '.', (string) $post["{$campo}_{$dato}"]);
             }
+        }
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($post["{$campo}_color"] ?? ''))) {
+            $textos[$campo]['color'] = (string) $post["{$campo}_color"];
         }
     }
     return $textos;

@@ -555,7 +555,7 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                         <summary>Ajuste fino con números</summary>
                         <p class="nota">Posición en % de la imagen (el texto queda centrado en ese punto). Tamaño en % del ancho.</p>
                         <table class="editor__ajustes-tabla">
-                            <thead><tr><th></th><th>Horizontal %</th><th>Vertical %</th><th>Tamaño</th></tr></thead>
+                            <thead><tr><th></th><th>Horizontal %</th><th>Vertical %</th><th>Tamaño</th><th>Color</th></tr></thead>
                             <tbody>
                             <?php foreach (CERT_TEXTOS as $campo => $def): $t = $aj['textos'][$campo]; ?>
                                 <tr>
@@ -563,12 +563,12 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                                     <td><input type="number" name="<?= $campo ?>_x" min="0" max="100" step="0.1" value="<?= e((string) $t['x']) ?>" aria-label="<?= e($def['etiqueta']) ?>: horizontal"></td>
                                     <td><input type="number" name="<?= $campo ?>_y" min="0" max="100" step="0.1" value="<?= e((string) $t['y']) ?>" aria-label="<?= e($def['etiqueta']) ?>: vertical"></td>
                                     <td><input type="number" name="<?= $campo ?>_tam" min="0.5" max="10" step="0.05" value="<?= e((string) $t['tam']) ?>" aria-label="<?= e($def['etiqueta']) ?>: tamaño"></td>
+                                    <td><input type="color" name="<?= $campo ?>_color" value="<?= e($t['color']) ?>" aria-label="<?= e($def['etiqueta']) ?>: color"></td>
                                 </tr>
                             <?php endforeach; ?>
                             </tbody>
                         </table>
                     </details>
-                    <label>Color del texto <input type="color" name="color" value="<?= e($aj['color']) ?>"></label>
                     <button class="boton boton--mini" type="submit">Guardar certificado</button>
                 </form>
                 <?php if ($tieneImagen): ?>

@@ -70,6 +70,7 @@ echo panel_aviso($aviso);
 
     <?php if ($nombre !== '' || $ejemplo):
         $textosCert = [
+            'curso'  => $curso['titulo'],
             'nombre' => $nombre,
             'fecha'  => fecha_larga($fecha),
         ];
@@ -79,7 +80,7 @@ echo panel_aviso($aviso);
                 <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
                 <input type="hidden" name="accion" value="certificado">
                 <input type="hidden" name="volver_ejemplo" value="1">
-                <?php foreach ($ajustes['textos'] as $campo => $t): foreach (['x', 'y', 'tam'] as $dato): ?>
+                <?php foreach ($ajustes['textos'] as $campo => $t): foreach (['x', 'y', 'tam', 'color'] as $dato): ?>
                     <input type="hidden" name="<?= $campo ?>_<?= $dato ?>" value="<?= e((string) $t[$dato]) ?>">
                 <?php endforeach; endforeach; ?>
                 <p class="cert-editor__ayuda"><strong>✋ Arrastrá cada texto</strong> hasta su lugar. Tocá uno para elegirlo y cambiá su tamaño:</p>
@@ -90,7 +91,7 @@ echo panel_aviso($aviso);
                         </select>
                     </label>
                     <label>Tamaño <input type="range" id="cert-tam" min="0.5" max="10" step="0.05"></label>
-                    <label>Color <input type="color" name="color" id="cert-color" value="<?= e($ajustes['color']) ?>"></label>
+                    <label>Color del texto elegido <input type="color" id="cert-color"></label>
                     <button class="boton boton--mini" type="submit">Guardar posiciones</button>
                 </div>
             </form>
@@ -99,7 +100,7 @@ echo panel_aviso($aviso);
             <img src="certificado.php?c=<?= e($slug) ?>&imagen=1<?= $ejemplo ? '&vista=1' : '' ?>" alt="" draggable="false">
             <?php foreach ($ajustes['textos'] as $campo => $t): ?>
                 <p class="certificado__texto certificado__<?= $campo ?>" data-campo="<?= $campo ?>"
-                    style="left: <?= $t['x'] ?>%; top: <?= $t['y'] ?>%; font-size: <?= $t['tam'] ?>cqw;"><?= e($textosCert[$campo]) ?></p>
+                    style="left: <?= $t['x'] ?>%; top: <?= $t['y'] ?>%; font-size: <?= $t['tam'] ?>cqw; color: <?= e($t['color']) ?>;"><?= e($textosCert[$campo]) ?></p>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
@@ -120,6 +121,7 @@ pagina_fin($ejemplo ? <<<'JS'
         cert.querySelectorAll('[data-campo]').forEach(function (t) { t.classList.toggle('certificado__texto--elegido', t.dataset.campo === nombre); });
         selector.value = nombre;
         tam.value = campo(nombre, 'tam').value;
+        color.value = campo(nombre, 'color').value;
     }
     cert.querySelectorAll('[data-campo]').forEach(function (texto) {
         texto.addEventListener('pointerdown', function (ev) {
@@ -147,7 +149,10 @@ pagina_fin($ejemplo ? <<<'JS'
         campo(selector.value, 'tam').value = tam.value;
         cert.querySelector('[data-campo="' + selector.value + '"]').style.fontSize = tam.value + 'cqw';
     });
-    color.addEventListener('input', function () { cert.style.color = color.value; });
+    color.addEventListener('input', function () {
+        campo(selector.value, 'color').value = color.value;
+        cert.querySelector('[data-campo="' + selector.value + '"]').style.color = color.value;
+    });
     elegir('nombre');
 })();
 </script>
