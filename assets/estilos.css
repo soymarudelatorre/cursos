@@ -721,3 +721,19 @@ body > main { flex: 1 0 auto; }
 .tarjeta-panel__cabecera .formulario--en-linea { margin: 0; align-items: center; flex: 0 1 380px; }
 .tarjeta-panel__cabecera .formulario--en-linea input[type=text] { background: var(--superficie); }
 .tarjeta-panel__cabecera:has(.formulario--en-linea) { align-items: center; }
+
+/* Editor del temario: lo de la derecha de cada lección (íconos, flechas, «Mover a…») en columnas alineadas */
+.fila-leccion { display: grid; grid-template-columns: minmax(0, 1fr) 62px 82px 44px 124px; align-items: center; gap: 8px; }
+.editor__lecciones li > .fila-leccion > * { margin: 0; }
+.fila-leccion__titulo { overflow-wrap: anywhere; }
+.fila-leccion .editor__calif, .fila-leccion__info, .fila-leccion__peso { text-align: right; white-space: nowrap; }
+.fila-leccion .editor__orden { justify-content: center; }
+.fila-leccion .editor__mover select { width: 100%; max-width: none; }
+.editor__lecciones li.fila-leccion--archivo { display: grid; grid-template-columns: minmax(0, 1fr) 62px 54px; }
+.editor__lecciones li.fila-leccion--archivo > * { margin: 0; }
+.fila-leccion--archivo form { justify-content: flex-end; }
+@media (max-width: 560px) {
+    .fila-leccion { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+    .fila-leccion .editor__calif:empty { display: none; }
+    .fila-leccion .editor__mover { grid-column: 1 / -1; }
+}

@@ -73,6 +73,25 @@ function panel_barra(string $titulo, string $extra = ''): void
             <a class="tablero__salir" href="admin.php?accion=salir">Salir</a>
         </div>
     </div>
+    <script>
+    // Después de guardar, la página se recarga: se vuelve a la misma altura en vez de saltar
+    // arriba de todo. Solo si se vuelve a la misma dirección y sin ancla (#…), que tiene prioridad.
+    (function () {
+        var clave = 'cursos_panel_scroll', aqui = location.pathname + location.search;
+        try {
+            var g = JSON.parse(sessionStorage.getItem(clave) || 'null');
+            sessionStorage.removeItem(clave);
+            if (g && g.url === aqui && !location.hash && Date.now() - g.t < 60000) {
+                if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+                document.addEventListener('DOMContentLoaded', function () { window.scrollTo(0, g.y); });
+            }
+        } catch (e) {}
+        document.addEventListener('submit', function (ev) {
+            if (ev.defaultPrevented) return;
+            try { sessionStorage.setItem(clave, JSON.stringify({ url: aqui, y: window.scrollY, t: Date.now() })); } catch (e) {}
+        });
+    })();
+    </script>
     <?php
 }
 

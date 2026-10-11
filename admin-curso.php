@@ -554,9 +554,9 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                         <p class="editor__bono-ayuda">Solo archivos para descargar. Se ve en el temario con 🎁 y <strong>no cuenta</strong> para el progreso ni para el certificado.</p>
                         <ul class="editor__lecciones editor__bono-archivos">
                             <?php foreach ($m['recursos'] ?? [] as $r): ?>
-                                <li class="fila-accion">
-                                    <a href="recurso.php?c=<?= e($slug) ?>&m=<?= e($m['id']) ?>&r=<?= e($r['id']) ?>">⬇ <?= e($r['nombre']) ?></a>
-                                    <small><?= e(tamano_legible((int) $r['tamano'])) ?></small>
+                                <li class="fila-leccion fila-leccion--archivo">
+                                    <a class="fila-leccion__titulo" href="recurso.php?c=<?= e($slug) ?>&m=<?= e($m['id']) ?>&r=<?= e($r['id']) ?>" title="<?= e($r['nombre']) ?>">⬇ <?= e($r['nombre']) ?></a>
+                                    <small class="fila-leccion__peso"><?= e(tamano_legible((int) $r['tamano'])) ?></small>
                                     <form method="post" onsubmit="return confirm('¿Borrar este archivo del bono?')">
                                         <?= $campoCsrf ?>
                                         <input type="hidden" name="accion" value="borrar_recurso_bono">
@@ -587,11 +587,12 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                     <?php else: ?>
                     <ol class="editor__lecciones">
                         <?php foreach ($m['lecciones'] as $j => $l): ?>
-                            <li class="fila-accion">
-                                <a href="<?= e($volver . '&l=' . rawurlencode($l['id'])) ?>"><?= e($l['titulo']) ?></a>
+                            <li>
+                              <div class="fila-leccion">
+                                <a class="fila-leccion__titulo" href="<?= e($volver . '&l=' . rawurlencode($l['id'])) ?>" title="<?= e($l['titulo']) ?>"><?= e($l['titulo']) ?></a>
                                 <?php $calif = $resumenCalif[$slug . '|' . $l['id']] ?? null; ?>
-                                <?php if ($calif): ?><small class="editor__calif" title="<?= $calif['votos'] ?> votos">★ <?= e(number_format($calif['promedio'], 1, ',', '')) ?> (<?= $calif['votos'] ?>)</small><?php endif; ?>
-                                <small><?= video_archivo($l['video']) !== '' ? '🔒🎬' : ($l['video'] !== '' ? '🎬' : '⚠ sin video') ?><?= $l['recursos'] ? ' · 📎 ' . count($l['recursos']) : '' ?></small>
+                                <small class="editor__calif"<?= $calif ? ' title="' . $calif['votos'] . ' votos"' : '' ?>><?php if ($calif): ?>★ <?= e(number_format($calif['promedio'], 1, ',', '')) ?> (<?= $calif['votos'] ?>)<?php endif; ?></small>
+                                <small class="fila-leccion__info"><?= video_archivo($l['video']) !== '' ? '🔒🎬' : ($l['video'] !== '' ? '🎬' : '⚠ sin video') ?><?= $l['recursos'] ? ' · 📎 ' . count($l['recursos']) : '' ?></small>
                                 <form method="post" class="editor__orden">
                                     <?= $campoCsrf ?>
                                     <input type="hidden" name="accion" value="mover_leccion">
@@ -612,7 +613,10 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                                         </select>
                                         <noscript><button class="enlace-boton" type="submit">Mover</button></noscript>
                                     </form>
+                                <?php else: ?>
+                                    <span></span>
                                 <?php endif; ?>
+                              </div>
                             </li>
                         <?php endforeach; ?>
                     </ol>
