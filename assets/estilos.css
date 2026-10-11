@@ -670,3 +670,31 @@ body > main { flex: 1 0 auto; }
 .editor__mover select { padding: 2px 6px; font: .75rem var(--fuente-texto); color: var(--suave); border: 1px solid color-mix(in srgb, var(--texto) 15%, transparent); border-radius: 4px; background: var(--superficie); cursor: pointer; max-width: 150px; }
 .editor__mover select:hover { border-color: var(--primario); color: var(--primario); }
 .editor__modulo { scroll-margin-top: 20px; }
+
+/* Tabla de alumnas: una línea por fila (los detalles aparecen al pasar el mouse) */
+.tabla--alumnas { overflow-x: auto; }
+.tabla--alumnas th, .tabla--alumnas td { white-space: nowrap !important; vertical-align: middle !important; }
+.tabla--alumnas td[title] { cursor: help; }
+.fila-persona { display: flex; align-items: center; gap: 6px; }
+.fila-persona__nombre { font-weight: 500; }
+.fila-persona small { color: var(--suave); }
+.tabla--alumnas .nombre-pendiente { font-size: .8rem; cursor: help; }
+.editar-nombre { position: relative; }
+.editar-nombre summary { list-style: none; cursor: pointer; color: var(--primario); font-size: .85rem; padding: 0 2px; }
+.editar-nombre summary::-webkit-details-marker { display: none; }
+.editar-nombre__panel { position: absolute; z-index: 5; top: 22px; left: 0; display: grid; gap: 8px; width: 280px; padding: 12px; background: var(--superficie); border-radius: var(--radio); box-shadow: 0 8px 28px color-mix(in srgb, var(--texto) 18%, transparent); white-space: normal; }
+.editar-nombre__panel label { display: grid; gap: 4px; font-size: .75rem; color: var(--suave); }
+.editar-nombre__panel input { padding: 6px 8px; font: .85rem var(--fuente-texto); border: 1px solid color-mix(in srgb, var(--texto) 20%, transparent); border-radius: 4px; }
+.editar-nombre__panel .boton { justify-self: start; }
+.tabla--alumnas .tabla__acciones { flex-wrap: nowrap !important; align-items: center; gap: 6px; }
+.boton--peligro { color: #8a1c1c !important; box-shadow: inset 0 0 0 1px rgba(138, 28, 28, .35) !important; }
+.tabla--scroll.tabla--alumnas { max-height: 520px; }
+.fila-persona__email { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: middle; }
+.tabla--alumnas input[type=date] { width: 128px; }
+.tabla--alumnas th, .tabla--alumnas td { padding: 8px 10px !important; }
+/* Editar nombre: se despliega dentro de la fila (la tabla recorta lo que sobresale) */
+.fila-persona { flex-wrap: wrap; }
+.editar-nombre[open] { order: 10; flex-basis: 100%; }
+.editar-nombre[open] summary { display: none; }
+.editar-nombre__panel { position: static; width: 300px; margin: 6px 0 2px; box-shadow: none; border: 1px solid color-mix(in srgb, var(--primario) 30%, transparent); }
+.editar-nombre__botones { display: flex; align-items: center; gap: 12px; }

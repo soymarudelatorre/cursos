@@ -273,41 +273,51 @@ pagina_inicio('Panel');
         <?php if (!$filas): ?>
             <p class="vacio">Todavía no hay accesos.</p>
         <?php else: ?>
-            <div class="tabla tabla--compacta tabla--scroll">
+            <div class="tabla tabla--compacta tabla--scroll tabla--alumnas">
                 <table>
-                    <thead><tr><th>Persona</th><th>Curso</th><th>Avance</th><th>Acceso</th><th>Acciones</th></tr></thead>
+                    <thead><tr><th>Persona</th><th>Curso</th><th>Avance</th><th>Acceso</th><th>Vence</th><th></th></tr></thead>
                     <tbody>
-                    <?php foreach ($filas as $f): ?>
+                    <?php foreach ($filas as $f):
+                        // Una línea por fila: los detalles (fechas, pedido) quedan en el texto al pasar el mouse.
+                        $origen = $f['origen'] === 'woocommerce' ? 'WooCommerce #' . $f['pedido'] : 'Manual';
+                        $detalleAvance = trim(($f['certificado'] !== '' ? 'Completó el ' . fecha_corta($f['certificado']) . '. ' : '')
+                            . ($f['ultima_actividad'] !== '' ? 'Última actividad: ' . fecha_corta($f['ultima_actividad']) . '.' : 'Sin actividad todavía.'));
+                        $detalleAcceso = 'Desde ' . fecha_corta($f['desde']) . ' · ' . ($f['hasta'] === null ? 'sin vencimiento' : 'hasta ' . fecha_corta($f['hasta']));
+                        ?>
                         <tr data-buscar="<?= e(mb_strtolower($f['email'] . ' ' . $f['nombre'] . ' ' . $f['curso'])) ?>">
-                            <td><?= e($f['nombre'] ?: '—') ?><br><small><?= e($f['email']) ?></small>
-                                <?php if (!$f['confirmado']): ?><br><small class="nombre-pendiente">Nombre sin confirmar todavía</small><?php endif; ?>
+                            <td><div class="fila-persona">
+                                <span class="fila-persona__nombre"><?= e($f['nombre'] ?: '—') ?></span>
+                                <?php if (!$f['confirmado']): ?><span class="nombre-pendiente" title="Todavía no confirmó su nombre para el certificado">⚠</span><?php endif; ?>
                                 <details class="editar-nombre">
-                                    <summary>Editar nombre del certificado</summary>
-                                    <form method="post" class="formulario--en-linea">
+                                    <summary title="Editar nombre del certificado" aria-label="Editar nombre del certificado">✎</summary>
+                                    <form method="post" class="editar-nombre__panel">
                                         <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
                                         <input type="hidden" name="alumna" value="<?= e($f['email']) ?>">
-                                        <input type="text" name="nombre_certificado" value="<?= e($f['nombre']) ?>" required minlength="5" maxlength="80" aria-label="Nombre del certificado">
-                                        <button class="boton boton--contorno boton--mini" type="submit">Guardar</button>
+                                        <label>Nombre del certificado
+                                            <input type="text" name="nombre_certificado" value="<?= e($f['nombre']) ?>" required minlength="5" maxlength="80">
+                                        </label>
+                                        <span class="editar-nombre__botones">
+                                            <button class="boton boton--mini" type="submit">Guardar</button>
+                                            <button class="enlace-boton" type="button" onclick="this.closest('details').open = false">Cancelar</button>
+                                        </span>
                                     </form>
                                 </details>
-                            </td>
-                            <td><?= e($f['curso']) ?><br><small><?= $f['origen'] === 'woocommerce' ? 'WooCommerce #' . e($f['pedido']) : 'Manual' ?></small></td>
-                            <td><strong><?= $f['pct'] ?> %</strong> <small>(<?= $f['hechas'] ?>/<?= $f['total'] ?>)</small>
-                                <?= $f['certificado'] !== '' ? '<br><small>🏆 Completó el ' . e(fecha_corta($f['certificado'])) . '</small>' : '' ?>
-                                <?= $f['ultima_actividad'] !== '' ? '<br><small>Últ.: ' . e(fecha_corta($f['ultima_actividad'])) . '</small>' : '' ?></td>
-                            <td><?= ['activo' => '🟢 Vigente', 'vencido' => '⚪ Vencido', 'revocado' => '🔴 Dado de baja'][$f['estado']] ?? e($f['estado']) ?>
-                                <br><small>Desde <?= e(fecha_corta($f['desde'])) ?> · <?= $f['hasta'] === null ? 'sin vencimiento' : 'hasta ' . e(fecha_corta($f['hasta'])) ?></small></td>
-                            <td>
+                                <small class="fila-persona__email" title="<?= e($f['email']) ?>"><?= e($f['email']) ?></small>
+                            </div></td>
+                            <td title="<?= e($origen) ?>"><?= e($f['curso']) ?> <small><?= $f['origen'] === 'woocommerce' ? '🛒' : '' ?></small></td>
+                            <td title="<?= e($detalleAvance) ?>"><strong><?= $f['pct'] ?> %</strong> <small>(<?= $f['hechas'] ?>/<?= $f['total'] ?>)</small><?= $f['certificado'] !== '' ? ' 🏆' : '' ?></td>
+                            <td title="<?= e($detalleAcceso) ?>"><?= ['activo' => '🟢 Vigente', 'vencido' => '⚪ Vencido', 'revocado' => '🔴 Baja'][$f['estado']] ?? e($f['estado']) ?></td>
+                            <td colspan="2">
                                 <form method="post" class="tabla__acciones">
                                     <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
                                     <input type="hidden" name="acceso_email" value="<?= e($f['email']) ?>">
                                     <input type="hidden" name="acceso_curso" value="<?= e($f['slug']) ?>">
                                     <input type="date" name="hasta" value="<?= e((string) $f['hasta']) ?>" aria-label="Vencimiento" title="Vencimiento (vacío = sin vencimiento)">
-                                    <button class="boton boton--contorno boton--mini" type="submit">Guardar fecha</button>
+                                    <button class="boton boton--contorno boton--mini" type="submit" title="Guardar la fecha de vencimiento">Guardar</button>
                                     <?php if ($f['estado'] === 'revocado'): ?>
                                         <button class="boton boton--contorno boton--mini" type="submit" name="restaurar" value="1">Restaurar</button>
                                     <?php else: ?>
-                                        <button class="boton boton--contorno boton--mini" type="submit" name="revocar" value="1" onclick="return confirm('¿Quitar el acceso? El progreso se conserva.')">Quitar acceso</button>
+                                        <button class="boton boton--contorno boton--mini boton--peligro" type="submit" name="revocar" value="1" onclick="return confirm('¿Quitar el acceso? El progreso se conserva.')" title="Quitar el acceso (el progreso se conserva)">Quitar</button>
                                     <?php endif; ?>
                                 </form>
                             </td>
