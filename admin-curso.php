@@ -280,6 +280,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $aviso = 'Certificado guardado.';
                 break;
 
+            case 'quitar_certificado':
+                $anterior = (string) (curso($slug)['certificado']['imagen'] ?? '');
+                cambiar_curso($slug, function (array $c) {
+                    unset($c['certificado']['imagen']);
+                    return $c;
+                });
+                if ($anterior !== '' && is_file(certificados_dir() . '/' . basename($anterior))) {
+                    unlink(certificados_dir() . '/' . basename($anterior));
+                }
+                $destino = $volver . '#certificado';
+                $aviso = 'Este curso ya no entrega certificado.';
+                break;
+
             case 'borrar_curso':
                 $conAcceso = array_filter(alumnos_todos(), fn ($a) => isset($a['cursos'][$slug]));
                 if ($conAcceso) {
@@ -316,6 +329,7 @@ $aviso = $aviso ?? panel_leer_flash();
 
 $curso = curso($slug);
 $leccion = $leccionId !== '' ? curso_leccion($curso, $leccionId) : null;
+$resumenCalif = resumen_calificaciones();
 $csrf = token_csrf();
 $campoCsrf = '<input type="hidden" name="csrf" value="' . e($csrf) . '">';
 
@@ -460,6 +474,8 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                         <?php foreach ($m['lecciones'] as $j => $l): ?>
                             <li class="fila-accion">
                                 <a href="<?= e($volver . '&l=' . rawurlencode($l['id'])) ?>"><?= e($l['titulo']) ?></a>
+                                <?php $calif = $resumenCalif[$slug . '|' . $l['id']] ?? null; ?>
+                                <?php if ($calif): ?><small class="editor__calif" title="<?= $calif['votos'] ?> votos">★ <?= e(number_format($calif['promedio'], 1, ',', '')) ?> (<?= $calif['votos'] ?>)</small><?php endif; ?>
                                 <small><?= video_archivo($l['video']) !== '' ? '🔒🎬' : ($l['video'] !== '' ? '🎬' : '⚠ sin video') ?><?= $l['recursos'] ? ' · 📎 ' . count($l['recursos']) : '' ?></small>
                                 <form method="post" class="editor__orden">
                                     <?= $campoCsrf ?>
@@ -520,12 +536,14 @@ pagina_inicio('Editar · ' . $curso['titulo']);
             <div class="tarjeta-panel" id="certificado">
                 <h2>Certificado</h2>
                 <?php $aj = certificado_ajustes($curso); $tieneImagen = !empty($curso['certificado']['imagen']); ?>
+                <p class="editor__estado-cert <?= $tieneImagen ? 'editor__estado-cert--si' : '' ?>">
+                    <?= $tieneImagen ? '✓ Este curso entrega certificado al completar el 100 % de las lecciones.' : 'Este curso no entrega certificado. Es opcional: subí una imagen solo si querés darlo.' ?></p>
                 <p class="nota">Subí tu diseño como imagen (PNG o JPG, idealmente 2000 px de ancho) <strong>sin</strong> nombre ni fecha:
-                    se escriben encima. Se habilita al completar el 100 % de las lecciones.</p>
+                    se escriben encima.</p>
                 <form method="post" enctype="multipart/form-data" class="formulario">
                     <?= $campoCsrf ?>
                     <input type="hidden" name="accion" value="certificado">
-                    <label><?= $tieneImagen ? 'Reemplazar imagen' : 'Imagen del certificado' ?>
+                    <label><?= $tieneImagen ? 'Reemplazar imagen' : 'Imagen del certificado (opcional)' ?>
                         <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp"<?= $tieneImagen ? '' : ' required' ?>>
                     </label>
                     <div class="editor__ajustes">
@@ -538,6 +556,11 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                 </form>
                 <?php if ($tieneImagen): ?>
                     <p><a href="certificado.php?c=<?= e($slug) ?>&vista=1" target="_blank">👁 Ver un ejemplo con nombre ficticio</a></p>
+                    <form method="post" onsubmit="return confirm('¿Dejar de entregar certificado en este curso? Quienes ya lo obtuvieron dejan de verlo hasta que vuelvas a subir una imagen.')">
+                        <?= $campoCsrf ?>
+                        <input type="hidden" name="accion" value="quitar_certificado">
+                        <button class="enlace-boton enlace-boton--peligro" type="submit">Quitar el certificado de este curso</button>
+                    </form>
                 <?php endif; ?>
             </div>
 

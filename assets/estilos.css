@@ -478,3 +478,43 @@ img { max-width: 100%; }
 .editor__nuevo-modulo label { display: grid; gap: 2px; font-weight: 600; font-size: .9rem; color: var(--primario); }
 .editor__nuevo-modulo label small { font-weight: 400; color: var(--suave); font-size: .78rem; }
 .editor__nuevo-modulo .formulario--en-linea { margin-top: 10px; }
+
+/* Calificación de la lección: 5 estrellas (orden inverso en el HTML para pintar al pasar el mouse) */
+.calificar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 24px; padding: 14px 18px; border-radius: var(--radio); background: color-mix(in srgb, var(--primario) 5%, var(--superficie)); }
+.calificar__texto { font-weight: 500; font-size: .95rem; }
+.calificar__estrellas { display: inline-flex; flex-direction: row-reverse; }
+.calificar__estrella { background: none; border: 0; padding: 0 3px; font-size: 1.9rem; line-height: 1; cursor: pointer; color: color-mix(in srgb, var(--texto) 18%, transparent); transition: color .12s, transform .12s; }
+.calificar__estrella--llena { color: var(--primario); }
+.calificar__estrellas:hover .calificar__estrella { color: color-mix(in srgb, var(--texto) 18%, transparent); }
+.calificar__estrella:hover, .calificar__estrella:hover ~ .calificar__estrella { color: var(--rosa) !important; }
+.calificar__estrella:hover { transform: scale(1.15); }
+.calificar__estrella:focus-visible { outline: 3px solid color-mix(in srgb, var(--primario) 45%, transparent); outline-offset: 2px; border-radius: 4px; }
+
+/* Ranking de lecciones (panel) */
+.ranking-lecciones { margin: 0; padding: 0 0 0 26px; display: grid; gap: 0; }
+.ranking-lecciones li { display: grid; grid-template-columns: minmax(0, 1fr) auto 110px; gap: 4px 16px; align-items: center; padding: 8px 0; border-bottom: 1px solid color-mix(in srgb, var(--texto) 7%, transparent); }
+.ranking-lecciones li::marker { color: var(--suave); font-size: .8rem; }
+.ranking-lecciones__titulo { display: grid; min-width: 0; }
+.ranking-lecciones__titulo a { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ranking-lecciones__titulo small { color: var(--suave); }
+.ranking-lecciones__estrellas { color: var(--primario); font-size: 1.05rem; white-space: nowrap; cursor: help; }
+.ranking-lecciones__estrellas strong { color: var(--texto); font-size: .9rem; margin-left: 4px; }
+.ranking-lecciones__votos { color: var(--suave); font-size: .8rem; text-align: right; }
+.ranking-lecciones__pocos { opacity: .6; }
+.editor__calif { color: var(--primario) !important; font-weight: 600; }
+@media (max-width: 640px) { .ranking-lecciones li { grid-template-columns: minmax(0, 1fr) auto; } .ranking-lecciones__votos { grid-column: 1 / -1; text-align: left; } }
+.ranking-lecciones { padding-left: 0; list-style: none; counter-reset: rk-lec; }
+.ranking-lecciones li { grid-template-columns: 30px minmax(0, 1fr) auto 150px; counter-increment: rk-lec; }
+.ranking-lecciones li::before { content: counter(rk-lec) "°"; color: var(--suave); font-weight: 600; font-size: .85rem; }
+.ranking-lecciones__votos { white-space: nowrap; }
+@media (max-width: 640px) { .ranking-lecciones li { grid-template-columns: 30px minmax(0, 1fr) auto; } .ranking-lecciones__votos { grid-column: 2 / -1; } }
+
+/* Certificado al final del temario (solo con el 100 %) */
+.temario__certificado { border-top: 1px solid color-mix(in srgb, var(--texto) 8%, transparent); padding: 10px; }
+.temario__certificado a, .temario__certificado p { display: flex; gap: 12px; align-items: center; margin: 0; padding: 12px 14px; border-radius: var(--radio); background: linear-gradient(135deg, var(--primario), var(--rosa)); color: #fff; text-decoration: none; font-size: 1.5rem; line-height: 1; }
+.temario__certificado a:hover { filter: brightness(1.08); }
+.temario__certificado span:last-child { display: grid; gap: 3px; font-size: .95rem; line-height: 1.3; }
+.temario__certificado small { font-size: .78rem; opacity: .9; }
+.temario__certificado--vista a { background: color-mix(in srgb, var(--primario) 10%, var(--superficie)); color: var(--primario); border: 1px dashed color-mix(in srgb, var(--primario) 45%, transparent); }
+.editor__estado-cert { margin: 0 0 8px; padding: 8px 12px; border-radius: var(--radio); font-size: .85rem; background: color-mix(in srgb, var(--texto) 5%, var(--superficie)); color: var(--suave); }
+.editor__estado-cert--si { background: #e6f4ea; color: #1e7b45; font-weight: 600; }

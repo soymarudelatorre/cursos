@@ -171,10 +171,10 @@ function recordar_ultima(string $email, string $slug, string $leccionId): void
 }
 
 /** Mensaje de hito según el porcentaje: reconoce el avance sin apurar. */
-function mensaje_hito(int $porcentaje): string
+function mensaje_hito(int $porcentaje, bool $conCertificado = false): string
 {
     return match (true) {
-        $porcentaje >= 100 => '🏆 ¡Terminaste el curso! Tu certificado ya está disponible.',
+        $porcentaje >= 100 => $conCertificado ? '🏆 ¡Terminaste el curso! Tu certificado ya está disponible.' : '🏆 ¡Terminaste el curso! Felicitaciones por llegar hasta el final.',
         $porcentaje >= 75  => '🔥 Ya pasaste las tres cuartas partes. Lo que aprendiste ya es tuyo.',
         $porcentaje >= 50  => '⭐ Mitad del camino: cada lección suma.',
         $porcentaje >= 25  => '🌱 Ya hiciste un cuarto del curso. Buen ritmo, el tuyo.',
@@ -232,4 +232,76 @@ function enviar_invitacion(string $email, string $nombre, array $curso, ?string 
             . ' Este botón vale por ' . DIAS_INVITACION . ' días; después podés entrar siempre pidiendo un enlace con tu email en ' . url_base(),
         'Empezar el curso'
     );
+}
+
+// ── Calificaciones (1 a 5 estrellas por lección) ──────────────────────────
+// Se guarda el voto de cada alumna (alumno['calificaciones'][slug][lección] = estrellas)
+// solo para que cada persona cuente una vez y pueda cambiar su voto.
+// En el panel se muestra únicamente el resumen general: promedio y cantidad de votos.
+
+const MIN_VOTOS_RANKING = 3; // con menos votos, el promedio se muestra aparte («pocos votos»)
+
+function calificar_leccion(string $email, string $slug, string $leccionId, int $estrellas): void
+{
+    $estrellas = max(1, min(5, $estrellas));
+    alumno_cambiar($email, function (array $a) use ($slug, $leccionId, $estrellas) {
+        $a['calificaciones'][$slug][$leccionId] = $estrellas;
+        return $a;
+    });
+}
+
+/**
+ * Resumen por lección: "slug|leccion" => [votos, promedio, distribucion[1..5]].
+ * No cuentan los emails de prueba (config.php → 'emails_prueba').
+ */
+function resumen_calificaciones(?array $alumnos = null): array
+{
+    $resumen = [];
+    foreach ($alumnos ?? alumnos_todos() as $email => $a) {
+        if (es_prueba((string) $email)) {
+            continue;
+        }
+        foreach ($a['calificaciones'] ?? [] as $slug => $lecciones) {
+            foreach ($lecciones as $leccionId => $estrellas) {
+                $clave = "$slug|$leccionId";
+                $resumen[$clave] ??= ['votos' => 0, 'suma' => 0, 'distribucion' => [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0]];
+                $resumen[$clave]['votos']++;
+                $resumen[$clave]['suma'] += (int) $estrellas;
+                $resumen[$clave]['distribucion'][(int) $estrellas]++;
+            }
+        }
+    }
+    foreach ($resumen as &$r) {
+        $r['promedio'] = round($r['suma'] / $r['votos'], 2);
+    }
+    return $resumen;
+}
+
+/** «★★★★☆» para un promedio (redondeado a la estrella más cercana). */
+function estrellas_texto(float $promedio): string
+{
+    $llenas = (int) round($promedio);
+    return str_repeat('★', $llenas) . str_repeat('☆', 5 - $llenas);
+}
+
+/**
+ * Garantiza que quien tiene el 100 % tenga su código de certificado (por ejemplo, si llegó al
+ * 100 % porque se borró una lección que le faltaba). Devuelve los datos del certificado o null.
+ */
+function asegurar_certificado(string $email, array $curso): ?array
+{
+    $slug = $curso['slug'];
+    $a = alumno($email);
+    if (!empty($a['certificado'][$slug])) {
+        return $a['certificado'][$slug];
+    }
+    [, $total, $porcentaje] = progreso($a, $curso);
+    if ($total === 0 || $porcentaje < 100) {
+        return null;
+    }
+    alumno_cambiar($email, function (array $a) use ($slug) {
+        $a['certificado'][$slug] ??= ['codigo' => strtoupper(substr(bin2hex(random_bytes(5)), 0, 8)), 'fecha' => date('Y-m-d')];
+        return $a;
+    });
+    return alumno($email)['certificado'][$slug] ?? null;
 }

@@ -166,7 +166,7 @@ pagina_inicio('Mis cursos');
                         <?php elseif ($hasta === null): ?>Acceso sin vencimiento
                         <?php else: ?>Disponible hasta el <?= e(fecha_corta($hasta)) ?><?php endif; ?>
                     </p>
-                    <?php if ($activo): ?><p class="curso-tarjeta__hito"><?= e(mensaje_hito($pct)) ?></p><?php endif; ?>
+                    <?php if ($activo): ?><p class="curso-tarjeta__hito"><?= e(mensaje_hito($pct, !empty($c['certificado']['imagen']))) ?></p><?php endif; ?>
                 </div>
                 <div class="curso-tarjeta__acciones">
                     <?php if ($activo): ?>

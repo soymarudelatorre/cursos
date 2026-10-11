@@ -167,6 +167,21 @@ if (($_GET['exportar'] ?? '') === 'alumnos') {
 }
 
 $activos = count(array_filter($filas, fn ($f) => $f['estado'] === 'activo'));
+
+// Ranking de lecciones por calificación (solo el resumen general, no quién votó qué).
+$ranking = [];
+foreach (resumen_calificaciones($alumnos) as $clave => $r) {
+    [$slugR, $leccionR] = explode('|', $clave, 2);
+    $cursoR = isset($cursos[$slugR]) ? $cursos[$slugR] + ['slug' => $slugR] : null;
+    $leccionDatos = $cursoR ? curso_leccion($cursoR, $leccionR) : null;
+    if (!$leccionDatos) {
+        continue; // lección o curso borrado
+    }
+    $ranking[] = $r + ['curso' => $cursoR['titulo'], 'slug' => $slugR, 'leccion' => $leccionDatos['titulo'], 'id' => $leccionR, 'modulo' => $leccionDatos['modulo']];
+}
+// Primero las que tienen votos suficientes, por promedio y luego por cantidad de votos.
+usort($ranking, fn ($x, $y) => [($y['votos'] >= MIN_VOTOS_RANKING), $y['promedio'], $y['votos']] <=> [($x['votos'] >= MIN_VOTOS_RANKING), $x['promedio'], $x['votos']]);
+$totalVotos = array_sum(array_column($ranking, 'votos'));
 $certificados = count(array_filter($filas, fn ($f) => $f['certificado'] !== ''));
 $avisosWoo = array_slice(array_reverse(leer_registros(WOO_ARCHIVO_AVISOS)), 0, 15);
 $csrf = token_csrf();
@@ -276,6 +291,33 @@ pagina_inicio('Panel');
                     </tbody>
                 </table>
             </div>
+        <?php endif; ?>
+    </div>
+
+    <div class="tarjeta-panel">
+        <div class="tarjeta-panel__cabecera">
+            <h2>Ranking de lecciones <small><?= $totalVotos ?> calificaciones · promedio general, sin datos por alumna</small></h2>
+        </div>
+        <?php if (!$ranking): ?>
+            <p class="vacio">Todavía no hay calificaciones. Las alumnas califican cada lección con 1 a 5 estrellas debajo del video.</p>
+        <?php else: ?>
+            <ol class="ranking-lecciones">
+                <?php foreach ($ranking as $r): $pocos = $r['votos'] < MIN_VOTOS_RANKING; ?>
+                    <li class="<?= $pocos ? 'ranking-lecciones__pocos' : '' ?>">
+                        <span class="ranking-lecciones__titulo">
+                            <a href="admin-curso.php?c=<?= e($r['slug']) ?>&l=<?= e($r['id']) ?>"><?= e($r['leccion']) ?></a>
+                            <small><?= e($r['curso']) ?> · <?= e($r['modulo']) ?></small>
+                        </span>
+                        <span class="ranking-lecciones__estrellas" title="<?= e(implode(' · ', array_map(fn ($n) => "$n★: {$r['distribucion'][$n]}", [5, 4, 3, 2, 1]))) ?>">
+                            <span aria-hidden="true"><?= estrellas_texto($r['promedio']) ?></span>
+                            <strong><?= e(number_format($r['promedio'], 1, ',', '')) ?></strong>
+                        </span>
+                        <span class="ranking-lecciones__votos"><?= $r['votos'] ?> <?= $r['votos'] === 1 ? 'voto' : 'votos' ?><?= $pocos ? ' · pocos votos' : '' ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+            <p class="nota">Ordenado por promedio. Las lecciones con menos de <?= MIN_VOTOS_RANKING ?> votos van al final: un solo voto no alcanza para comparar.
+                Pasá el mouse sobre las estrellas para ver cuántos votos tuvo cada puntaje. No cuentan los emails de prueba.</p>
         <?php endif; ?>
     </div>
 

@@ -26,6 +26,14 @@ $ids = array_column($lecciones, 'id');
 // ── Marcar / desmarcar como vista ─────────────────────────────────────────
 if (!$vistaPrevia && $_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valido()) {
     $id = (string) ($_POST['leccion'] ?? '');
+    if (in_array($id, $ids, true) && isset($_POST['estrellas'])) {
+        // Calificación de la lección (1 a 5): se puede cambiar cuando quiera, vale la última.
+        $estrellas = max(1, min(5, (int) $_POST['estrellas']));
+        calificar_leccion($email, $slug, $id, $estrellas);
+        panel_flash(true, '¡Gracias! Calificaste esta lección con ' . $estrellas . ($estrellas === 1 ? ' estrella.' : ' estrellas.') . ' Podés cambiarlo cuando quieras.');
+        header('Location: curso.php?c=' . rawurlencode($slug) . '&l=' . rawurlencode($id), true, 303);
+        exit;
+    }
     if (in_array($id, $ids, true)) {
         $vista = ($_POST['accion'] ?? '') === 'vista';
         marcar_leccion($email, $curso, $id, $vista);
@@ -55,6 +63,9 @@ if ($leccion && !$vistaPrevia && ($alumno['ultima'][$slug] ?? '') !== $leccion['
     recordar_ultima($email, $slug, $leccion['id']);
 }
 [$hechas, $total, $pct] = progreso($alumno, $curso);
+// Certificado: aparece al final del temario solo con todas las lecciones vistas.
+$certificado = (!$vistaPrevia && $total > 0 && $pct === 100) ? asegurar_certificado($email, $curso) : null;
+$hayImagenCertificado = !empty($curso['certificado']['imagen']);
 $pos = $leccion ? array_search($leccion['id'], $ids, true) : false;
 $anterior = $pos !== false ? ($ids[$pos - 1] ?? null) : null;
 $posterior = $pos !== false ? ($ids[$pos + 1] ?? null) : null;
@@ -62,6 +73,7 @@ $csrf = token_csrf();
 $base = 'curso.php?c=' . rawurlencode($slug) . '&l=';
 
 pagina_inicio($curso['titulo']);
+echo panel_aviso(panel_leer_flash());
 ?>
 <section class="contenedor aula">
     <?php if ($vistaPrevia): ?>
@@ -79,7 +91,7 @@ pagina_inicio($curso['titulo']);
     </div>
 
     <?php if (isset($_GET['ok'])): ?>
-        <p class="aviso aula__hito" role="status"><?= e(mensaje_hito($pct)) ?>
+        <p class="aviso aula__hito" role="status"><?= e(mensaje_hito($pct, $hayImagenCertificado)) ?>
             <?php if ($pct === 100 && !empty($curso['certificado']['imagen'])): ?> <a href="certificado.php?c=<?= e($slug) ?>">Ver mi certificado</a><?php endif; ?></p>
     <?php endif; ?>
 
@@ -106,6 +118,19 @@ pagina_inicio($curso['titulo']);
                     </ol>
                 </details>
             <?php endforeach; ?>
+            <?php if ($certificado): ?>
+                <div class="temario__certificado">
+                    <?php if ($hayImagenCertificado): ?>
+                        <a href="certificado.php?c=<?= e($slug) ?>"><span aria-hidden="true">🏆</span> <span><strong>Tu certificado</strong><small>Completaste todas las lecciones</small></span></a>
+                    <?php else: /* curso sin certificado: solo el reconocimiento */ ?>
+                        <p><span aria-hidden="true">🎉</span> <span><strong>¡Completaste el curso!</strong><small>Viste todas las lecciones</small></span></p>
+                    <?php endif; ?>
+                </div>
+            <?php elseif ($vistaPrevia && $hayImagenCertificado): ?>
+                <div class="temario__certificado temario__certificado--vista">
+                    <a href="certificado.php?c=<?= e($slug) ?>&vista=1" target="_blank"><span aria-hidden="true">🏆</span> <span><strong>Certificado</strong><small>Vista previa: la alumna lo ve acá al completar todas las lecciones</small></span></a>
+                </div>
+            <?php endif; ?>
         </nav>
 
         <article class="leccion">
@@ -140,6 +165,20 @@ pagina_inicio($curso['titulo']);
                             <?php endforeach; ?>
                         </ul>
                     </div>
+                <?php endif; ?>
+
+                <?php if (!$vistaPrevia): $miVoto = (int) ($alumno['calificaciones'][$slug][$leccion['id']] ?? 0); ?>
+                    <form method="post" class="calificar">
+                        <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+                        <input type="hidden" name="leccion" value="<?= e($leccion['id']) ?>">
+                        <span class="calificar__texto" id="calificar-titulo"><?= $miVoto ? 'Tu calificación:' : '¿Qué te pareció esta lección?' ?></span>
+                        <span class="calificar__estrellas" role="group" aria-labelledby="calificar-titulo">
+                            <?php for ($n = 5; $n >= 1; $n--): /* orden inverso: el CSS pinta las anteriores al pasar el mouse */ ?>
+                                <button type="submit" name="estrellas" value="<?= $n ?>" class="calificar__estrella<?= $n <= $miVoto ? ' calificar__estrella--llena' : '' ?>"
+                                    aria-label="<?= $n ?> de 5 estrellas"<?= $n === $miVoto ? ' aria-pressed="true"' : '' ?> title="<?= $n ?> de 5">★</button>
+                            <?php endfor; ?>
+                        </span>
+                    </form>
                 <?php endif; ?>
 
                 <div class="leccion__acciones">
