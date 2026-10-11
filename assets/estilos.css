@@ -472,3 +472,9 @@ img { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) { .aula, .aula__columnas, .temario { transition: none !important; } }
 /* El temario mantiene su ancho mientras se desliza (no se aplasta el texto) */
 @media (min-width: 901px) { .aula__columnas > .temario { width: 300px; } }
+
+/* Formulario para crear un módulo: se distingue de los módulos ya creados */
+.editor__nuevo-modulo { margin-top: 16px; padding: 14px; border: 2px dashed color-mix(in srgb, var(--primario) 35%, transparent); border-radius: var(--radio); background: color-mix(in srgb, var(--primario) 3%, var(--superficie)); }
+.editor__nuevo-modulo label { display: grid; gap: 2px; font-weight: 600; font-size: .9rem; color: var(--primario); }
+.editor__nuevo-modulo label small { font-weight: 400; color: var(--suave); font-size: .78rem; }
+.editor__nuevo-modulo .formulario--en-linea { margin-top: 10px; }

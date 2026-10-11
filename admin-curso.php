@@ -476,15 +476,19 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                         <input type="hidden" name="accion" value="agregar_leccion">
                         <input type="hidden" name="id" value="<?= e($m['id']) ?>">
                         <input type="text" name="titulo" placeholder="Título de la lección nueva" required maxlength="150" aria-label="Título de la lección nueva">
-                        <button class="boton boton--contorno boton--mini" type="submit">+ Lección</button>
+                        <button class="boton boton--contorno boton--mini" type="submit">+ Crear lección</button>
                     </form>
                 </div>
             <?php endforeach; ?>
-            <form method="post" class="formulario--en-linea editor__nuevo-modulo">
+            <form method="post" class="editor__nuevo-modulo">
                 <?= $campoCsrf ?>
                 <input type="hidden" name="accion" value="agregar_modulo">
-                <input type="text" name="titulo" placeholder="Nombre del módulo nuevo" required maxlength="120" aria-label="Nombre del módulo nuevo">
-                <button class="boton boton--mini" type="submit">+ Módulo</button>
+                <label for="nuevo-modulo">➕ Agregar el módulo <?= count($curso['modulos']) + 1 ?>
+                    <small>Escribí el nombre y tocá «Crear módulo» (o Enter). Después le agregás las lecciones.</small></label>
+                <div class="formulario--en-linea">
+                    <input type="text" id="nuevo-modulo" name="titulo" placeholder="Ej.: De la meta al hábito" required maxlength="120">
+                    <button class="boton boton--mini" type="submit">Crear módulo</button>
+                </div>
             </form>
         </div>
 
