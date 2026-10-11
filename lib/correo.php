@@ -121,16 +121,21 @@ function enviar_email(string $para, string $nombrePara, string $asunto, string $
  * $intro y $nota van en texto (se escapan). El enlace largo queda escondido detrás de «tocá acá»,
  * solo como respaldo si el botón no abre.
  */
-function enviar_email_boton(string $nombre, string $email, string $enlace, string $asunto, string $intro, string $textoBoton, string $nota = '', string $pie = 'Si no pediste este correo, podés ignorarlo.'): void
+function enviar_email_boton(string $nombre, string $email, string $enlace, string $asunto, string $intro, string $textoBoton, string $nota = '', string $pie = 'Si no pediste este correo, podés ignorarlo.', string $saludoInicio = '¡Hola'): void
 {
     $cfg = config();
     $marca = $cfg['marca'];
     $color = $cfg['tema']['color_primario'];
-    $saludo = $nombre !== '' ? '¡Hola, ' . e($nombre) . '!' : '¡Hola!';
+    $saludo = e($saludoInicio) . ($nombre !== '' ? ', ' . e($nombre) : '') . '!';
     $url = e($enlace);
     $sitio = e($marca['nombre']);
     $lema = e((string) ($marca['lema'] ?? ''));
-    $parrafo = e($intro);
+    // Una línea en blanco separa párrafos; **texto** va en negrita.
+    $parrafo = implode('', array_map(
+        fn ($p) => '<p style="margin:0 0 14px;font-size:16px;line-height:1.6;">'
+            . preg_replace('/\*\*(.+?)\*\*/u', '<strong style="color:' . $color . ';">$1</strong>', e(trim($p))) . '</p>',
+        preg_split('/\n\s*\n/', trim($intro))
+    ));
     $boton = e($textoBoton);
     $notaHtml = $nota !== '' ? '<p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#555058;">' . e($nota) . '</p>' : '';
     $pieHtml = e($pie);
@@ -157,8 +162,8 @@ function enviar_email_boton(string $nombre, string $email, string $enlace, strin
 <tr><td>
 {$cabecera}
 <h1 style="margin:0 0 14px;font-size:24px;line-height:1.3;">{$saludo}</h1>
-<p style="margin:0 0 26px;font-size:16px;line-height:1.6;">{$parrafo}</p>
-<p style="margin:0 0 26px;"><a href="{$url}" style="display:inline-block;background:{$color};color:#fff;text-decoration:none;font-weight:bold;font-size:16px;padding:14px 28px;border-radius:6px;">{$boton}</a></p>
+{$parrafo}
+<p style="margin:12px 0 26px;"><a href="{$url}" style="display:inline-block;background:{$color};color:#fff;text-decoration:none;font-weight:bold;font-size:16px;padding:14px 28px;border-radius:6px;">{$boton}</a></p>
 {$notaHtml}
 <p style="margin:22px 0 0;padding-top:14px;border-top:1px solid #EEE;font-size:11px;line-height:1.5;color:#8A858C;">Si el botón no abre, <a href="{$url}" style="color:#8A858C;">tocá acá</a>. {$pieHtml}</p>
 </td></tr></table>
@@ -166,7 +171,7 @@ function enviar_email_boton(string $nombre, string $email, string $enlace, strin
 </body></html>
 HTML;
 
-    $texto = ($nombre !== '' ? "¡Hola, $nombre!" : '¡Hola!') . "\n\n$intro\n\n$textoBoton:\n$enlace\n\n"
+    $texto = $saludoInicio . ($nombre !== '' ? ", $nombre" : '') . "!\n\n" . preg_replace('/\*\*(.+?)\*\*/u', '«$1»', $intro) . "\n\n$textoBoton:\n$enlace\n\n"
         . ($nota !== '' ? "$nota\n\n" : '') . "$pie\n\n" . $marca['nombre'];
 
     enviar_email($email, $nombre, $asunto, $html, $texto);
