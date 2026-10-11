@@ -182,7 +182,9 @@ $activos = count(array_filter($filas, fn ($f) => $f['estado'] === 'activo'));
 
 // Ranking de lecciones por calificación (solo el resumen general, no quién votó qué).
 $ranking = [];
-foreach (resumen_calificaciones($alumnos) as $clave => $r) {
+$conPrueba = !empty($_GET['con_prueba']);
+$votosPrueba = votos_de_prueba($alumnos);
+foreach (resumen_calificaciones($alumnos, $conPrueba) as $clave => $r) {
     [$slugR, $leccionR] = explode('|', $clave, 2);
     $cursoR = isset($cursos[$slugR]) ? $cursos[$slugR] + ['slug' => $slugR] : null;
     $leccionDatos = $cursoR ? curso_leccion($cursoR, $leccionR) : null;
@@ -317,12 +319,22 @@ pagina_inicio('Panel');
         <?php endif; ?>
     </div>
 
-    <div class="tarjeta-panel">
+    <div class="tarjeta-panel" id="ranking">
         <div class="tarjeta-panel__cabecera">
             <h2>Ranking de lecciones <small><?= $totalVotos ?> calificaciones · promedio general, sin datos por alumna</small></h2>
+            <?php if ($votosPrueba > 0): ?>
+                <span class="segmentos" role="group" aria-label="Votos de prueba">
+                    <a href="admin.php#ranking"<?= $conPrueba ? '' : ' aria-current="true"' ?>>Solo alumnas</a>
+                    <a href="admin.php?con_prueba=1#ranking"<?= $conPrueba ? ' aria-current="true"' : '' ?>>Incluir votos de prueba (<?= $votosPrueba ?>)</a>
+                </span>
+            <?php endif; ?>
         </div>
+        <?php if ($conPrueba): ?>
+            <p class="aviso aviso--mini">Estás viendo el ranking <strong>con los votos de los emails de prueba</strong>. Sirve para revisar cómo se ve; los datos reales son los de «Solo alumnas».</p>
+        <?php endif; ?>
         <?php if (!$ranking): ?>
-            <p class="vacio">Todavía no hay calificaciones. Las alumnas califican cada lección con 1 a 5 estrellas debajo del video.</p>
+            <p class="vacio">Todavía no hay calificaciones de alumnas. Califican cada lección con 1 a 5 estrellas debajo del video.
+                <?php if ($votosPrueba > 0 && !$conPrueba): ?>Hay <?= $votosPrueba ?> <?= $votosPrueba === 1 ? 'calificación' : 'calificaciones' ?> de emails de prueba que no cuentan: tocá «Incluir votos de prueba» para verlas.<?php endif; ?></p>
         <?php else: ?>
             <ol class="ranking-lecciones">
                 <?php foreach ($ranking as $r): $pocos = $r['votos'] < MIN_VOTOS_RANKING; ?>

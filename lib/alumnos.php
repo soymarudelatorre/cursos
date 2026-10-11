@@ -254,13 +254,13 @@ function calificar_leccion(string $email, string $slug, string $leccionId, int $
 
 /**
  * Resumen por lección: "slug|leccion" => [votos, promedio, distribucion[1..5]].
- * No cuentan los emails de prueba (config.php → 'emails_prueba').
+ * No cuentan los emails de prueba (config.php → 'emails_prueba'), salvo con $incluirPrueba.
  */
-function resumen_calificaciones(?array $alumnos = null): array
+function resumen_calificaciones(?array $alumnos = null, bool $incluirPrueba = false): array
 {
     $resumen = [];
     foreach ($alumnos ?? alumnos_todos() as $email => $a) {
-        if (es_prueba((string) $email)) {
+        if (!$incluirPrueba && es_prueba((string) $email)) {
             continue;
         }
         foreach ($a['calificaciones'] ?? [] as $slug => $lecciones) {
@@ -367,4 +367,18 @@ function frase_motivadora(): string
 {
     $frases = array_values(array_filter(array_map('trim', (array) (config()['frases_motivadoras'] ?? [])))) ?: FRASES_MOTIVADORAS;
     return $frases[(int) date('z') % count($frases)];
+}
+
+/** Cantidad de calificaciones hechas con emails de prueba (no cuentan en el ranking). */
+function votos_de_prueba(?array $alumnos = null): int
+{
+    $n = 0;
+    foreach ($alumnos ?? alumnos_todos() as $email => $a) {
+        if (es_prueba((string) $email)) {
+            foreach ($a['calificaciones'] ?? [] as $lecciones) {
+                $n += count($lecciones);
+            }
+        }
+    }
+    return $n;
 }
