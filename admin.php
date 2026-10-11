@@ -217,52 +217,55 @@ pagina_inicio('Panel');
         <li><span>Cursos completados</span><strong><?= $certificados ?></strong></li>
     </ul>
 
-    <div class="tablero__columnas">
-        <div class="tarjeta-panel">
-            <h2>Cursos</h2>
-            <?php if (!$cursos): ?><p class="vacio">Todavía no hay cursos. Creá el primero acá abajo.</p><?php endif; ?>
-            <ul class="lista-simple">
-                <?php foreach ($cursos as $slug => $c):
-                    $n = count(curso_lecciones($c));
-                    $personas = count(array_filter($filas, fn ($f) => $f['slug'] === $slug && $f['estado'] === 'activo'));
-                    ?>
-                    <li class="curso-fila">
-                        <a href="admin-curso.php?c=<?= e($slug) ?>"><strong><?= e($c['titulo']) ?></strong></a>
-                        <?= empty($c['publicado']) ? '<span class="etiqueta etiqueta--gris">Borrador</span>' : '<span class="etiqueta">Publicado</span>' ?>
-                        <small><?= $n ?> lecciones · <?= $personas ?> con acceso vigente · <?= ($c['acceso'] ?? 'anual') === 'ilimitado' ? 'sin vencimiento' : MESES_ACCESO_ANUAL . ' meses' ?></small>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
+    <div class="tarjeta-panel">
+        <div class="tarjeta-panel__cabecera">
+            <h2>Cursos <small><?= count($cursos) ?></small></h2>
             <form method="post" class="formulario formulario--en-linea">
                 <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
                 <input type="text" name="nuevo_curso" placeholder="Nombre del curso nuevo" required maxlength="120" aria-label="Nombre del curso nuevo">
                 <button class="boton boton--mini" type="submit">+ Crear curso</button>
             </form>
         </div>
+        <?php if (!$cursos): ?><p class="vacio">Todavía no hay cursos. Creá el primero con «+ Crear curso».</p><?php endif; ?>
+        <ul class="lista-cursos">
+            <?php foreach ($cursos as $slug => $c):
+                $n = count(curso_lecciones($c));
+                $personas = count(array_filter($filas, fn ($f) => $f['slug'] === $slug && $f['estado'] === 'activo'));
+                ?>
+                <li class="curso-fila">
+                    <a href="admin-curso.php?c=<?= e($slug) ?>"><strong><?= e($c['titulo']) ?></strong></a>
+                    <?= empty($c['publicado']) ? '<span class="etiqueta etiqueta--gris">Borrador</span>' : '<span class="etiqueta">Publicado</span>' ?>
+                    <small><?= $n ?> lecciones · <?= $personas ?> con acceso vigente · <?= ($c['acceso'] ?? 'anual') === 'ilimitado' ? 'sin vencimiento' : MESES_ACCESO_ANUAL . ' meses' ?></small>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
 
-        <div class="tarjeta-panel">
-            <h2>Habilitar acceso a mano</h2>
-            <?php if (!$cursos): ?>
-                <p class="vacio">Primero creá un curso.</p>
-            <?php else: ?>
-                <form method="post" class="formulario">
-                    <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
-                    <label>Curso
-                        <select name="curso" required>
-                            <?php foreach ($cursos as $slug => $c): ?><option value="<?= e($slug) ?>"><?= e($c['titulo']) ?></option><?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label>Personas <small>(una por línea: email, o «email, nombre»)</small>
-                        <textarea name="habilitar" rows="3" required placeholder="ana@ejemplo.com, Ana Pérez"></textarea>
-                    </label>
-                    <label>Fecha de pago <small>(el vencimiento se cuenta desde acá)</small>
-                        <input type="date" name="fecha" value="<?= e(date('Y-m-d')) ?>" required>
-                    </label>
-                    <label class="check"><input type="checkbox" name="invitar" value="1" checked> Enviarles el email de bienvenida con el enlace</label>
+    <div class="tarjeta-panel">
+        <h2>Habilitar acceso a mano</h2>
+        <?php if (!$cursos): ?>
+            <p class="vacio">Primero creá un curso.</p>
+        <?php else: ?>
+            <form method="post" class="formulario formulario--horizontal">
+                <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
+                <label>Curso
+                    <select name="curso" required>
+                        <?php foreach ($cursos as $slug => $c): ?><option value="<?= e($slug) ?>"><?= e($c['titulo']) ?></option><?php endforeach; ?>
+                    </select>
+                </label>
+                <label>Personas
+                    <textarea name="habilitar" rows="1" required placeholder="ana@ejemplo.com, Ana Pérez"></textarea>
+                </label>
+                <label>Fecha de pago
+                    <input type="date" name="fecha" value="<?= e(date('Y-m-d')) ?>" required>
+                </label>
+                <div class="formulario__enviar">
+                    <label class="check"><input type="checkbox" name="invitar" value="1" checked> Enviarles el email de bienvenida</label>
                     <button class="boton boton--mini" type="submit">Habilitar</button>
-                </form>
-            <?php endif; ?>
-        </div>
+                </div>
+                <p class="formulario__ayuda">Personas: una por línea, con el email solo o «email, nombre». En los cursos de 12 meses, el vencimiento se cuenta desde la fecha de pago.</p>
+            </form>
+        <?php endif; ?>
     </div>
 
     <div class="tarjeta-panel">
