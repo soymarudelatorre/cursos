@@ -45,7 +45,12 @@ if (!$vistaPrevia && $_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valido()) {
         marcar_leccion($email, $curso, $id, $vista);
         $siguiente = $ids[array_search($id, $ids, true) + 1] ?? null;
         $destino = $vista && $siguiente ? $siguiente : $id;
-        header('Location: curso.php?c=' . rawurlencode($slug) . '&l=' . rawurlencode($destino) . ($vista ? '&ok=1' : ''), true, 303);
+        if ($vista) {
+            // Mensaje de avance como aviso flotante: no empuja el contenido ni mueve el video.
+            [, , $pctNuevo] = progreso(alumno($email), $curso);
+            panel_flash(true, mensaje_hito($pctNuevo, !empty($curso['certificado']['imagen'])));
+        }
+        header('Location: curso.php?c=' . rawurlencode($slug) . '&l=' . rawurlencode($destino), true, 303);
         exit;
     }
 }
@@ -105,10 +110,6 @@ echo panel_aviso(panel_leer_flash());
         <p class="aviso aviso--mini aula__aviso">👁 Vista previa desde el panel: el progreso no se guarda. · <a href="admin-curso.php?c=<?= e($slug) ?>">Volver a editar</a></p>
     <?php endif; ?>
 
-    <?php if (isset($_GET['ok'])): ?>
-        <p class="aviso aula__hito" role="status"><?= e(mensaje_hito($pct, $hayImagenCertificado)) ?>
-            <?php if ($pct === 100 && !empty($curso['certificado']['imagen'])): ?> <a href="certificado.php?c=<?= e($slug) ?>">Ver mi certificado</a><?php endif; ?></p>
-    <?php endif; ?>
 
     <div class="aula__columnas">
         <?php // B. Temario: el color solo en el módulo donde está la alumna. ?>
@@ -177,8 +178,8 @@ echo panel_aviso(panel_leer_flash());
             <?php if (!$leccion): ?>
                 <p class="aviso">Este curso todavía no tiene lecciones.</p>
             <?php else: ?>
-                <p class="leccion__modulo">Lección <?= $pos + 1 ?> de <?= $total ?> <span>· <?= e($leccion['modulo']) ?></span></p>
-                <h2><?= e($leccion['titulo']) ?></h2>
+                <?php // Arriba solo una línea fija: así el video arranca siempre a la misma altura. ?>
+                <p class="leccion__modulo" title="<?= e($leccion['modulo']) ?>">Lección <?= $pos + 1 ?> de <?= $total ?> <span>· <?= e($leccion['modulo']) ?></span></p>
                 <?php $embed = video_embed((string) ($leccion['video'] ?? '')); ?>
                 <?php if (video_archivo((string) ($leccion['video'] ?? '')) !== ''): ?>
                     <div class="leccion__video">
@@ -193,6 +194,7 @@ echo panel_aviso(panel_leer_flash());
                             referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                     </div>
                 <?php endif; ?>
+                <h2 class="leccion__titulo"><?= e($leccion['titulo']) ?></h2>
                 <?php if (trim((string) ($leccion['texto'] ?? '')) !== ''): ?>
                     <div class="leccion__texto"><?= texto_html((string) $leccion['texto']) ?></div>
                 <?php endif; ?>

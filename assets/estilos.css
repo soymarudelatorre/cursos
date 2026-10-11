@@ -657,3 +657,12 @@ img { max-width: 100%; }
 .editor__bono-subir input[type=file] { font: .8rem var(--fuente-texto); max-width: 230px; }
 .editor__tipo { margin: 4px 14px 12px; }
 .editor__tipo .enlace-boton { font-size: .78rem; }
+
+/* Video siempre a la misma altura: arriba una sola línea; el título va debajo del video */
+.aula .leccion__modulo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 14px; }
+.aula .leccion h2.leccion__titulo { margin: 18px 0 12px; }
+.aula .leccion__video { margin-top: 0; margin-bottom: 0; }
+
+/* Pie de página siempre al fondo de la pantalla, aunque haya poco contenido */
+body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+body > main { flex: 1 0 auto; }
