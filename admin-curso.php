@@ -266,18 +266,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($imagenNueva) {
                         $cert['imagen'] = $imagenNueva;
                     }
-                    foreach (['nombre_y', 'nombre_tam', 'datos_y'] as $campo) {
-                        $cert[$campo] = (float) str_replace(',', '.', (string) ($_POST[$campo] ?? ''));
+                    $cert['textos'] = array_replace_recursive((array) ($cert['textos'] ?? []), certificado_ajustes_de_post($_POST));
+                    unset($cert['nombre_y'], $cert['nombre_tam'], $cert['datos_y']); // formato anterior
+                    if (isset($_POST['color'])) {
+                        $cert['color'] = (string) $_POST['color'];
                     }
-                    $cert['color'] = (string) ($_POST['color'] ?? '#000000');
                     $c['certificado'] = $cert;
                     return $c;
                 });
                 if ($imagenNueva && $anterior !== '' && is_file(certificados_dir() . '/' . basename($anterior))) {
                     unlink(certificados_dir() . '/' . basename($anterior));
                 }
-                $destino = $volver . '#certificado';
-                $aviso = 'Certificado guardado.';
+                // Desde el ejemplo con arrastre se vuelve al ejemplo; desde el editor, al editor.
+                $destino = !empty($_POST['volver_ejemplo']) ? 'certificado.php?c=' . rawurlencode($slug) . '&vista=1' : $volver . '#certificado';
+                $aviso = !empty($_POST['volver_ejemplo']) ? 'Posiciones del certificado guardadas.' : 'Certificado guardado.';
                 break;
 
             case 'quitar_certificado':
@@ -546,12 +548,27 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                     <label><?= $tieneImagen ? 'Reemplazar imagen' : 'Imagen del certificado (opcional)' ?>
                         <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp"<?= $tieneImagen ? '' : ' required' ?>>
                     </label>
-                    <div class="editor__ajustes">
-                        <label>Nombre: altura (% desde arriba) <input type="number" name="nombre_y" min="0" max="95" step="0.5" value="<?= e((string) $aj['nombre_y']) ?>"></label>
-                        <label>Nombre: tamaño <input type="number" name="nombre_tam" min="1" max="10" step="0.1" value="<?= e((string) $aj['nombre_tam']) ?>"></label>
-                        <label>Fecha y código: altura (%) <input type="number" name="datos_y" min="0" max="98" step="0.5" value="<?= e((string) $aj['datos_y']) ?>"></label>
-                        <label>Color del texto <input type="color" name="color" value="<?= e($aj['color']) ?>"></label>
-                    </div>
+                    <?php if ($tieneImagen): ?>
+                        <p><a class="boton boton--mini" href="certificado.php?c=<?= e($slug) ?>&vista=1" target="_blank">✋ Acomodar los textos arrastrándolos</a></p>
+                    <?php endif; ?>
+                    <details class="editor__ajustes-detalle">
+                        <summary>Ajuste fino con números</summary>
+                        <p class="nota">Posición en % de la imagen (el texto queda centrado en ese punto). Tamaño en % del ancho.</p>
+                        <table class="editor__ajustes-tabla">
+                            <thead><tr><th></th><th>Horizontal %</th><th>Vertical %</th><th>Tamaño</th></tr></thead>
+                            <tbody>
+                            <?php foreach (CERT_TEXTOS as $campo => $def): $t = $aj['textos'][$campo]; ?>
+                                <tr>
+                                    <th><?= e($def['etiqueta']) ?></th>
+                                    <td><input type="number" name="<?= $campo ?>_x" min="0" max="100" step="0.1" value="<?= e((string) $t['x']) ?>" aria-label="<?= e($def['etiqueta']) ?>: horizontal"></td>
+                                    <td><input type="number" name="<?= $campo ?>_y" min="0" max="100" step="0.1" value="<?= e((string) $t['y']) ?>" aria-label="<?= e($def['etiqueta']) ?>: vertical"></td>
+                                    <td><input type="number" name="<?= $campo ?>_tam" min="0.5" max="10" step="0.05" value="<?= e((string) $t['tam']) ?>" aria-label="<?= e($def['etiqueta']) ?>: tamaño"></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </details>
+                    <label>Color del texto <input type="color" name="color" value="<?= e($aj['color']) ?>"></label>
                     <button class="boton boton--mini" type="submit">Guardar certificado</button>
                 </form>
                 <?php if ($tieneImagen): ?>

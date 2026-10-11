@@ -167,19 +167,19 @@ echo panel_aviso(panel_leer_flash());
                     </div>
                 <?php endif; ?>
 
-                <?php if (!$vistaPrevia): $miVoto = (int) ($alumno['calificaciones'][$slug][$leccion['id']] ?? 0); ?>
-                    <form method="post" class="calificar">
+                <?php $miVoto = $vistaPrevia ? 0 : (int) ($alumno['calificaciones'][$slug][$leccion['id']] ?? 0); ?>
+                    <form method="post" class="calificar<?= $vistaPrevia ? ' calificar--vista' : '' ?>">
                         <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
                         <input type="hidden" name="leccion" value="<?= e($leccion['id']) ?>">
                         <span class="calificar__texto" id="calificar-titulo"><?= $miVoto ? 'Tu calificación:' : '¿Qué te pareció esta lección?' ?></span>
                         <span class="calificar__estrellas" role="group" aria-labelledby="calificar-titulo">
                             <?php for ($n = 5; $n >= 1; $n--): /* orden inverso: el CSS pinta las anteriores al pasar el mouse */ ?>
                                 <button type="submit" name="estrellas" value="<?= $n ?>" class="calificar__estrella<?= $n <= $miVoto ? ' calificar__estrella--llena' : '' ?>"
-                                    aria-label="<?= $n ?> de 5 estrellas"<?= $n === $miVoto ? ' aria-pressed="true"' : '' ?> title="<?= $n ?> de 5">★</button>
+                                    aria-label="<?= $n ?> de 5 estrellas"<?= $n === $miVoto ? ' aria-pressed="true"' : '' ?> title="<?= $n ?> de 5"<?= $vistaPrevia ? ' disabled' : '' ?>>★</button>
                             <?php endfor; ?>
                         </span>
+                        <?php if ($vistaPrevia): ?><small class="calificar__nota">Vista previa: así lo ven las alumnas (desde el panel no se vota).</small><?php endif; ?>
                     </form>
-                <?php endif; ?>
 
                 <div class="leccion__acciones">
                     <?php if ($anterior): ?><a class="boton boton--contorno boton--chico" href="<?= e($base . rawurlencode($anterior)) ?>">← Anterior</a><?php endif; ?>

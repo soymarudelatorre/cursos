@@ -144,7 +144,7 @@ foreach ($alumnos as $em => $a) {
             'curso' => $c['titulo'] ?? "($slug, borrado)", 'desde' => (string) $acceso['desde'], 'hasta' => $acceso['hasta'],
             'origen' => (string) $acceso['origen'], 'pedido' => (string) ($acceso['pedido'] ?? ''), 'estado' => acceso_estado($acceso),
             'hechas' => $hechas, 'total' => $total, 'pct' => $pct, 'ultima_actividad' => $vistas ? max($vistas) : '',
-            'certificado' => (string) ($a['certificado'][$slug]['codigo'] ?? ''),
+            'certificado' => (string) ($a['certificado'][$slug]['fecha'] ?? ''), // fecha en que completó el curso
         ];
     }
 }
@@ -156,7 +156,7 @@ if (($_GET['exportar'] ?? '') === 'alumnos') {
     header('Content-Disposition: attachment; filename="cursos-alumnos-' . date('Y-m-d') . '.csv"');
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF"); // BOM: Excel reconoce los acentos
-    fputcsv($out, ['email', 'nombre', 'curso', 'desde', 'hasta', 'estado', 'origen', 'pedido', 'lecciones vistas', 'total lecciones', 'progreso %', 'última actividad', 'certificado'], ',', '"', '');
+    fputcsv($out, ['email', 'nombre', 'curso', 'desde', 'hasta', 'estado', 'origen', 'pedido', 'lecciones vistas', 'total lecciones', 'progreso %', 'última actividad', 'completó el curso'], ',', '"', '');
     foreach ($filas as $f) {
         fputcsv($out, array_map(fn ($v) => preg_replace('/^([=+\-@\t\r])/', "'$1", (string) $v), [
             $f['email'], $f['nombre'], $f['curso'], $f['desde'], $f['hasta'] ?? 'sin vencimiento', $f['estado'], $f['origen'],
@@ -200,7 +200,7 @@ pagina_inicio('Panel');
         <li><span>Cursos</span><strong><?= count($cursos) ?></strong></li>
         <li><span>Personas</span><strong><?= count($alumnos) ?></strong></li>
         <li><span>Accesos vigentes</span><strong><?= $activos ?></strong></li>
-        <li><span>Certificados</span><strong><?= $certificados ?></strong></li>
+        <li><span>Cursos completados</span><strong><?= $certificados ?></strong></li>
     </ul>
 
     <div class="tablero__columnas">
@@ -268,7 +268,7 @@ pagina_inicio('Panel');
                             <td><?= e($f['nombre'] ?: '—') ?><br><small><?= e($f['email']) ?></small></td>
                             <td><?= e($f['curso']) ?><br><small><?= $f['origen'] === 'woocommerce' ? 'WooCommerce #' . e($f['pedido']) : 'Manual' ?></small></td>
                             <td><strong><?= $f['pct'] ?> %</strong> <small>(<?= $f['hechas'] ?>/<?= $f['total'] ?>)</small>
-                                <?= $f['certificado'] !== '' ? '<br><small>🏆 ' . e($f['certificado']) . '</small>' : '' ?>
+                                <?= $f['certificado'] !== '' ? '<br><small>🏆 Completó el ' . e(fecha_corta($f['certificado'])) . '</small>' : '' ?>
                                 <?= $f['ultima_actividad'] !== '' ? '<br><small>Últ.: ' . e(fecha_corta($f['ultima_actividad'])) . '</small>' : '' ?></td>
                             <td><?= ['activo' => '🟢 Vigente', 'vencido' => '⚪ Vencido', 'revocado' => '🔴 Dado de baja'][$f['estado']] ?? e($f['estado']) ?>
                                 <br><small>Desde <?= e(fecha_corta($f['desde'])) ?> · <?= $f['hasta'] === null ? 'sin vencimiento' : 'hasta ' . e(fecha_corta($f['hasta'])) ?></small></td>

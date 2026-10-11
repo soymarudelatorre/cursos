@@ -15,10 +15,11 @@ mismo acceso por email que el portal de guías y el Diagnóstico Tech. Reemplaza
 - **Progreso guardado.** Cada lección se marca como vista. Hay una barra de avance, la opción
   «Continuar» donde quedó y mensajes de hito al 25, 50, 75 y 100 %, que reconocen el avance
   sin apurar: no hay rachas ni recordatorios.
-- **Certificado** al completar el 100 %: tu imagen de fondo con el nombre, la fecha y un
-  código de verificación escritos encima. Se guarda como PDF desde el navegador. Queda
-  disponible aunque el acceso al curso venza o se dé de baja. Cualquiera puede verificar el
-  código en `verificar.php`.
+- **Certificado (opcional por curso)** al completar el 100 %: tu imagen de fondo con el nombre y
+  la fecha escritos encima, que acomodás arrastrándolos en el ejemplo. Aparece al final del
+  temario y en «Mis cursos». Se guarda como PDF desde el navegador y queda disponible aunque el
+  acceso al curso venza. Si el curso no tiene imagen, no entrega certificado.
+- **Calificación con estrellas** (1 a 5) en cada lección y ranking general en el panel.
 - **Compras por WooCommerce** (webhook): el pago habilita el curso y envía el email de
   bienvenida. Un reembolso o una cancelación quitan el acceso, pero el progreso y el
   certificado se conservan.
@@ -166,8 +167,7 @@ index.php          Pedido del enlace de acceso y «Mis cursos»
 curso.php          Temario y lección (video, texto, archivos, marcar como vista)
 recurso.php        Entrega los archivos solo a quien tiene acceso vigente
 video.php          Entrega los videos del servidor solo a quien tiene acceso vigente
-certificado.php    Certificado (imagen + nombre, fecha y código)
-verificar.php      Verificación pública de un certificado por su código
+certificado.php    Certificado (imagen + nombre y fecha) y ajuste por arrastre desde el panel
 woocommerce.php    Recibe los webhooks de WooCommerce
 admin.php          Panel: cursos, accesos, avance, avisos de WooCommerce, CSV, backup
 admin-curso.php    Editor de un curso, sus lecciones y su certificado

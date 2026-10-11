@@ -211,17 +211,50 @@ function certificados_dir(): string
     return $dir;
 }
 
-/** Posiciones del texto sobre la imagen (en % del alto) y tamaño del nombre (en % del ancho). */
+/**
+ * Textos que se escriben sobre la imagen del certificado. Cada uno tiene posición horizontal (x)
+ * y vertical (y) en % de la imagen (el texto queda centrado en ese punto) y tamaño en % del ancho.
+ */
+const CERT_TEXTOS = [
+    'nombre' => ['etiqueta' => 'Nombre',               'x' => 50, 'y' => 45, 'tam' => 4.0],
+    'fecha'  => ['etiqueta' => 'Fecha',                'x' => 50, 'y' => 72, 'tam' => 1.4],
+];
+
 function certificado_ajustes(array $curso): array
 {
     $c = (array) ($curso['certificado'] ?? []);
+    // Versiones anteriores guardaban solo la altura del nombre y una altura para «fecha y código».
+    if (!isset($c['textos']) && isset($c['datos_y'])) {
+        $c['textos'] = [
+            'nombre' => ['y' => $c['nombre_y'] ?? 45, 'tam' => $c['nombre_tam'] ?? 4],
+            'fecha'  => ['y' => (float) $c['datos_y']],
+        ];
+    }
+    $textos = [];
+    foreach (CERT_TEXTOS as $campo => $def) {
+        $t = (array) ($c['textos'][$campo] ?? []);
+        $textos[$campo] = [
+            'x'   => round(min(100, max(0, (float) ($t['x'] ?? $def['x']))), 1),
+            'y'   => round(min(100, max(0, (float) ($t['y'] ?? $def['y']))), 1),
+            'tam' => round(min(10, max(0.5, (float) ($t['tam'] ?? $def['tam']))), 2),
+        ];
+    }
     $color = (string) ($c['color'] ?? '');
-    return [
-        'nombre_y'   => min(95, max(0, (float) ($c['nombre_y'] ?? 45))),
-        'nombre_tam' => min(10, max(1, (float) ($c['nombre_tam'] ?? 4))),
-        'datos_y'    => min(98, max(0, (float) ($c['datos_y'] ?? 72))),
-        'color'      => preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : '#000000',
-    ];
+    return ['textos' => $textos, 'color' => preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : '#000000'];
+}
+
+/** Lee del formulario las posiciones y tamaños (campos nombre_x, nombre_y, nombre_tam, …). */
+function certificado_ajustes_de_post(array $post): array
+{
+    $textos = [];
+    foreach (array_keys(CERT_TEXTOS) as $campo) {
+        foreach (['x', 'y', 'tam'] as $dato) {
+            if (isset($post["{$campo}_{$dato}"])) {
+                $textos[$campo][$dato] = (float) str_replace(',', '.', (string) $post["{$campo}_{$dato}"]);
+            }
+        }
+    }
+    return $textos;
 }
 
 /** Guarda la imagen del certificado subida desde el panel; devuelve el nombre del archivo. */
