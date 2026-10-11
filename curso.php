@@ -114,7 +114,24 @@ echo panel_aviso(panel_leer_flash());
         <?php // B. Temario: el color solo en el módulo donde está la alumna. ?>
         <nav class="temario" id="temario" aria-label="Contenido del curso">
             <p class="temario__titulo">Contenido del curso</p>
-            <?php foreach ($curso['modulos'] ?? [] as $i => $m):
+            <?php $numModulo = 0; foreach ($curso['modulos'] ?? [] as $i => $m):
+                if (!empty($m['bono'])): /* Bono: solo archivos para descargar, no cuenta para el progreso. */
+                    if (empty($m['recursos'])) { continue; } ?>
+                    <details class="modulo modulo--bono">
+                        <summary>
+                            <span class="modulo__num" aria-hidden="true">🎁</span>
+                            <span class="modulo__nombre"><?= e($m['titulo']) ?>
+                                <small>Bono · <?= count($m['recursos']) ?> <?= count($m['recursos']) === 1 ? 'archivo' : 'archivos' ?> para descargar</small></span>
+                        </summary>
+                        <ul class="modulo__archivos">
+                            <?php foreach ($m['recursos'] as $r): ?>
+                                <li><a href="recurso.php?c=<?= e($slug) ?>&m=<?= e($m['id']) ?>&r=<?= e($r['id']) ?>"><span class="modulo__descarga" aria-hidden="true">⬇</span> <?= e($r['nombre']) ?> <small><?= e(tamano_legible((int) $r['tamano'])) ?></small></a></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </details>
+                    <?php continue;
+                endif;
+                $numModulo++;
                 $idsModulo = array_column($m['lecciones'] ?? [], 'id');
                 $vistasModulo = count(array_intersect($idsModulo, array_keys($vistas)));
                 $actual = $leccion && $leccion['modulo_id'] === $m['id'];
@@ -122,7 +139,7 @@ echo panel_aviso(panel_leer_flash());
                 ?>
                 <details class="modulo<?= $actual ? ' modulo--actual' : '' ?><?= $completo ? ' modulo--completo' : '' ?>"<?= $actual ? ' open' : '' ?>>
                     <summary>
-                        <span class="modulo__num" aria-hidden="true"><?= $completo ? '✓' : $i + 1 ?></span>
+                        <span class="modulo__num" aria-hidden="true"><?= $completo ? '✓' : $numModulo ?></span>
                         <span class="modulo__nombre"><?= e($m['titulo']) ?>
                             <small><?= $idsModulo ? $vistasModulo . ' de ' . count($idsModulo) . (count($idsModulo) === 1 ? ' vista' : ' vistas') : 'Sin lecciones todavía' ?></small></span>
                     </summary>

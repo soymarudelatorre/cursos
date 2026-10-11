@@ -639,3 +639,21 @@ img { max-width: 100%; }
 .cursos__sesion { margin: 64px 0 0; padding-top: 18px; border-top: 1px solid color-mix(in srgb, var(--texto) 10%, transparent); font-size: .8rem; color: var(--suave); }
 .editor__ajustes-tabla input[type=color] { height: 30px; padding: 2px; cursor: pointer; }
 .certificado__curso { font-family: var(--fuente-titulos); font-weight: 600; }
+
+/* Módulos bono: solo archivos para descargar (no cuentan para el progreso) */
+.modulo--bono .modulo__num { background: color-mix(in srgb, var(--rosa) 14%, var(--superficie)); font-size: .95rem; }
+.modulo--bono .modulo__nombre small { color: var(--rosa); font-weight: 500; }
+.modulo__archivos { list-style: none; margin: 0; padding: 4px 0 10px; }
+.aula .temario .modulo__archivos a { display: flex; gap: 10px; align-items: baseline; padding: 8px 16px 8px 56px; color: var(--texto); text-decoration: none; font-size: .88rem; line-height: 1.4; }
+.aula .temario .modulo__archivos a:hover { background: color-mix(in srgb, var(--primario) 4%, transparent); color: var(--primario); }
+.modulo__archivos small { color: var(--suave); font-size: .72rem; white-space: nowrap; }
+.modulo__descarga { color: var(--primario); font-weight: 700; }
+/* Editor */
+.editor__modulo--bono { border-left-color: var(--rosa) !important; }
+.editor__modulo--bono > .fila-accion:first-child { background: color-mix(in srgb, var(--rosa) 12%, var(--superficie)) !important; }
+.editor__modulo--bono .editor__num { background: var(--rosa) !important; }
+.editor__bono-ayuda { margin: 10px 14px 0; font-size: .78rem; color: var(--suave); }
+.editor__bono-archivos { list-style: none; padding-left: 14px !important; }
+.editor__bono-subir input[type=file] { font: .8rem var(--fuente-texto); max-width: 230px; }
+.editor__tipo { margin: 4px 14px 12px; }
+.editor__tipo .enlace-boton { font-size: .78rem; }

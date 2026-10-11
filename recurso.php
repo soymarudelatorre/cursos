@@ -13,9 +13,19 @@ if (!$curso || !(es_admin() || ($email && puede_ver($email, $slug)))) {
     exit('No tenés acceso a este archivo. Entrá a tus cursos y volvé a intentarlo.');
 }
 
-$leccion = curso_leccion($curso, (string) ($_GET['l'] ?? ''));
+// Archivo de una lección (l) o de un módulo bono (m).
+$archivos = [];
+if (isset($_GET['m'])) {
+    foreach ($curso['modulos'] ?? [] as $m) {
+        if ($m['id'] === (string) $_GET['m'] && !empty($m['bono'])) {
+            $archivos = $m['recursos'] ?? [];
+        }
+    }
+} else {
+    $archivos = curso_leccion($curso, (string) ($_GET['l'] ?? ''))['recursos'] ?? [];
+}
 $recurso = null;
-foreach ($leccion['recursos'] ?? [] as $r) {
+foreach ($archivos as $r) {
     if ($r['id'] === (string) ($_GET['r'] ?? '')) {
         $recurso = $r;
     }

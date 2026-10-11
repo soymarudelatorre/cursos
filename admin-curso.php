@@ -126,12 +126,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             if ($m['lecciones']) {
                                 throw new RuntimeException('Para borrar un módulo, primero borrá o mové sus lecciones.');
                             }
+                            if (!empty($m['recursos'])) {
+                                throw new RuntimeException('Para borrar un bono, primero borrá sus archivos.');
+                            }
                             array_splice($c['modulos'], $i, 1);
                         }
                     }
                     return $c;
                 });
                 $aviso = 'Módulo borrado.';
+                break;
+
+            case 'tipo_modulo':
+                // Bono: módulo sin lecciones, solo archivos para descargar. No cuenta para el progreso.
+                $esBono = ($_POST['bono'] ?? '') === '1';
+                cambiar_curso($slug, function (array $c) use ($id, $esBono) {
+                    foreach ($c['modulos'] as &$m) {
+                        if ($m['id'] !== $id) {
+                            continue;
+                        }
+                        if ($esBono && $m['lecciones']) {
+                            throw new RuntimeException('Para convertirlo en bono, el módulo no puede tener lecciones: borralas o movelas a otro módulo.');
+                        }
+                        if (!$esBono && !empty($m['recursos'])) {
+                            throw new RuntimeException('Para volverlo un módulo normal, primero borrá los archivos del bono.');
+                        }
+                        $m['bono'] = $esBono;
+                        $m['recursos'] = $m['recursos'] ?? [];
+                    }
+                    return $c;
+                });
+                $aviso = $esBono ? 'Ahora es un bono. Subí los archivos para descargar.' : 'Volvió a ser un módulo con lecciones.';
+                break;
+
+            case 'subir_recurso_bono':
+                $recurso = recurso_guardar_subida($_FILES['archivo'] ?? []);
+                $nombreVisible = trim(mb_substr((string) ($_POST['nombre'] ?? ''), 0, 150));
+                if ($nombreVisible !== '') {
+                    $recurso['nombre'] = $nombreVisible . (pathinfo($nombreVisible, PATHINFO_EXTENSION) === '' ? '.' . pathinfo($recurso['archivo'], PATHINFO_EXTENSION) : '');
+                }
+                cambiar_curso($slug, function (array $c) use ($id, $recurso) {
+                    foreach ($c['modulos'] as &$m) {
+                        if ($m['id'] === $id && !empty($m['bono'])) {
+                            $m['recursos'][] = $recurso;
+                        }
+                    }
+                    return $c;
+                });
+                $aviso = 'Archivo agregado al bono: ' . $recurso['nombre'];
+                break;
+
+            case 'borrar_recurso_bono':
+                $recursoId = (string) ($_POST['recurso'] ?? '');
+                $borrado = null;
+                cambiar_curso($slug, function (array $c) use ($id, $recursoId, &$borrado) {
+                    foreach ($c['modulos'] as &$m) {
+                        foreach ($m['recursos'] ?? [] as $i => $r) {
+                            if ($m['id'] === $id && $r['id'] === $recursoId) {
+                                $borrado = $r;
+                                array_splice($m['recursos'], $i, 1);
+                            }
+                        }
+                    }
+                    return $c;
+                });
+                if ($borrado) {
+                    recurso_borrar_archivo($borrado);
+                }
+                $aviso = 'Archivo borrado del bono.';
                 break;
 
             case 'agregar_leccion':
@@ -307,6 +369,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 foreach (curso_lecciones($c) as $l) {
                     array_map('recurso_borrar_archivo', $l['recursos']);
                 }
+                foreach ($c['modulos'] as $m) {
+                    array_map('recurso_borrar_archivo', $m['recursos'] ?? []);
+                }
                 cursos_cambiar(function (array $cursos) use ($slug) {
                     unset($cursos[$slug]);
                     return $cursos;
@@ -445,14 +510,14 @@ pagina_inicio('Editar · ' . $curso['titulo']);
         <div class="tarjeta-panel">
             <h2>Temario</h2>
             <?php if (!$curso['modulos']): ?><p class="vacio">Empezá agregando un módulo (por ejemplo «Introducción»).</p><?php endif; ?>
-            <?php foreach ($curso['modulos'] as $i => $m): ?>
-                <div class="editor__modulo">
+            <?php $numModulo = 0; foreach ($curso['modulos'] as $i => $m): $esBono = !empty($m['bono']); if (!$esBono) { $numModulo++; } ?>
+                <div class="editor__modulo<?= $esBono ? ' editor__modulo--bono' : '' ?>">
                     <div class="fila-accion">
                         <form method="post" class="formulario--en-linea editor__titulo">
                             <?= $campoCsrf ?>
                             <input type="hidden" name="accion" value="renombrar_modulo">
                             <input type="hidden" name="id" value="<?= e($m['id']) ?>">
-                            <span class="editor__num">Módulo <?= $i + 1 ?></span>
+                            <span class="editor__num"><?= $esBono ? '🎁 Bono' : 'Módulo ' . $numModulo ?></span>
                             <input type="text" name="titulo" value="<?= e($m['titulo']) ?>" maxlength="120" aria-label="Nombre del módulo">
                             <button class="boton boton--contorno boton--mini" type="submit">Guardar</button>
                         </form>
@@ -463,7 +528,7 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                             <button class="enlace-boton" type="submit" name="dir" value="arriba" title="Subir"<?= $i === 0 ? ' disabled' : '' ?>>↑</button>
                             <button class="enlace-boton" type="submit" name="dir" value="abajo" title="Bajar"<?= $i === count($curso['modulos']) - 1 ? ' disabled' : '' ?>>↓</button>
                         </form>
-                        <?php if (!$m['lecciones']): ?>
+                        <?php if (!$m['lecciones'] && empty($m['recursos'])): ?>
                             <form method="post">
                                 <?= $campoCsrf ?>
                                 <input type="hidden" name="accion" value="borrar_modulo">
@@ -472,6 +537,41 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                             </form>
                         <?php endif; ?>
                     </div>
+                    <?php if ($esBono): ?>
+                        <p class="editor__bono-ayuda">Solo archivos para descargar. Se ve en el temario con 🎁 y <strong>no cuenta</strong> para el progreso ni para el certificado.</p>
+                        <ul class="editor__lecciones editor__bono-archivos">
+                            <?php foreach ($m['recursos'] ?? [] as $r): ?>
+                                <li class="fila-accion">
+                                    <a href="recurso.php?c=<?= e($slug) ?>&m=<?= e($m['id']) ?>&r=<?= e($r['id']) ?>">⬇ <?= e($r['nombre']) ?></a>
+                                    <small><?= e(tamano_legible((int) $r['tamano'])) ?></small>
+                                    <form method="post" onsubmit="return confirm('¿Borrar este archivo del bono?')">
+                                        <?= $campoCsrf ?>
+                                        <input type="hidden" name="accion" value="borrar_recurso_bono">
+                                        <input type="hidden" name="id" value="<?= e($m['id']) ?>">
+                                        <input type="hidden" name="recurso" value="<?= e($r['id']) ?>">
+                                        <button class="enlace-boton enlace-boton--peligro" type="submit">Borrar</button>
+                                    </form>
+                                </li>
+                            <?php endforeach; ?>
+                            <?php if (empty($m['recursos'])): ?><li class="vacio">Todavía no tiene archivos.</li><?php endif; ?>
+                        </ul>
+                        <form method="post" enctype="multipart/form-data" class="formulario--en-linea editor__bono-subir">
+                            <?= $campoCsrf ?>
+                            <input type="hidden" name="accion" value="subir_recurso_bono">
+                            <input type="hidden" name="id" value="<?= e($m['id']) ?>">
+                            <input type="file" name="archivo" required aria-label="Archivo del bono">
+                            <input type="text" name="nombre" maxlength="150" placeholder="Nombre que ve la alumna (opcional)" aria-label="Nombre que ve la alumna">
+                            <button class="boton boton--contorno boton--mini" type="submit">+ Subir archivo</button>
+                        </form>
+                        <?php if (empty($m['recursos'])): ?>
+                            <form method="post" class="editor__tipo">
+                                <?= $campoCsrf ?>
+                                <input type="hidden" name="accion" value="tipo_modulo">
+                                <input type="hidden" name="id" value="<?= e($m['id']) ?>">
+                                <button class="enlace-boton" type="submit" name="bono" value="0">Volver a módulo con lecciones</button>
+                            </form>
+                        <?php endif; ?>
+                    <?php else: ?>
                     <ol class="editor__lecciones">
                         <?php foreach ($m['lecciones'] as $j => $l): ?>
                             <li class="fila-accion">
@@ -496,13 +596,22 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                         <input type="text" name="titulo" placeholder="Título de la lección nueva" required maxlength="150" aria-label="Título de la lección nueva">
                         <button class="boton boton--contorno boton--mini" type="submit">+ Crear lección</button>
                     </form>
+                    <?php if (!$m['lecciones']): ?>
+                        <form method="post" class="editor__tipo">
+                            <?= $campoCsrf ?>
+                            <input type="hidden" name="accion" value="tipo_modulo">
+                            <input type="hidden" name="id" value="<?= e($m['id']) ?>">
+                            <button class="enlace-boton" type="submit" name="bono" value="1">🎁 Convertir en bono (solo archivos para descargar)</button>
+                        </form>
+                    <?php endif; ?>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
             <form method="post" class="editor__nuevo-modulo">
                 <?= $campoCsrf ?>
                 <input type="hidden" name="accion" value="agregar_modulo">
-                <label for="nuevo-modulo">➕ Agregar el módulo <?= count($curso['modulos']) + 1 ?>
-                    <small>Escribí el nombre y tocá «Crear módulo» (o Enter). Después le agregás las lecciones.</small></label>
+                <label for="nuevo-modulo">➕ Agregar el módulo <?= $numModulo + 1 ?>
+                    <small>Escribí el nombre y tocá «Crear módulo» (o Enter). Después le agregás las lecciones, o lo convertís en bono.</small></label>
                 <div class="formulario--en-linea">
                     <input type="text" id="nuevo-modulo" name="titulo" placeholder="Ej.: De la meta al hábito" required maxlength="120">
                     <button class="boton boton--mini" type="submit">Crear módulo</button>
