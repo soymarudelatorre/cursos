@@ -5,8 +5,8 @@ mismo acceso por email que el portal de guías y el Diagnóstico Tech. Reemplaza
 
 ## Qué hace (versión 1)
 
-- **Cursos con módulos y lecciones.** Cada lección tiene un video (YouTube «no listado» o
-  Vimeo), un texto opcional y archivos para descargar.
+- **Cursos con módulos y lecciones.** Cada lección tiene un video (alojado en tu hosting y
+  protegido, o de YouTube/Vimeo), un texto opcional y archivos para descargar.
 - **Acceso sin contraseña.** La alumna escribe su email y recibe un enlace que vale 24 horas.
   La sesión queda abierta 30 días (`dias_sesion`).
 - **Duración del acceso por curso:** 12 meses desde la fecha de pago, o sin vencimiento
@@ -26,17 +26,43 @@ mismo acceso por email que el portal de guías y el Diagnóstico Tech. Reemplaza
   accesos, cambiar vencimientos, ver el avance de cada alumna, exportar a CSV y enviar un
   backup por email.
 
-## Videos de YouTube: lo que tenés que saber
+## Videos: dónde alojarlos
 
-- Subí cada video como **No listado** y, en *Detalles → Mostrar más → Licencia y
-  distribución*, dejá activado **«Permitir inserción»**. Si no, el video no se reproduce
-  dentro de la plataforma.
-- **Un video no listado no está protegido.** Cualquiera que tenga el enlace lo puede ver, y
-  el enlace se puede sacar del código de la página. Es un riesgo que elegiste aceptar. Si un
-  día querés cerrarlo, pasá los videos a Vimeo con restricción por dominio y pegá los enlaces
-  nuevos. La plataforma acepta los dos, así que no hay que cambiar nada más.
-- El reproductor usa `youtube-nocookie.com`: YouTube no guarda cookies de seguimiento hasta
-  que la persona le da play.
+Cada lección acepta **un video del servidor** (recomendado) o un enlace de YouTube o Vimeo.
+
+### Videos en tu hosting (protegidos, sin costo extra)
+
+- El video se entrega con `video.php` **solo a quien tiene acceso vigente**. Si alguien copia
+  la dirección, sin sesión recibe un error 403. El reproductor no muestra el botón de descarga
+  y permite adelantar y retroceder.
+- No hay protección total: una alumna con acceso puede grabar la pantalla o, con
+  conocimientos técnicos, descargar el archivo. Eso no lo evita ninguna plataforma.
+- **Cómo subirlos:** por FTP o con el administrador de archivos de Ferozo, a la carpeta
+  `videos/` dentro de la carpeta privada:
+  - `public_html/cursos/privado/videos/`, si `config.php` está dentro de `cursos/`.
+  - `cursos-privado/videos/` (en `storagedir`), si usás la carpeta externa. Es lo más seguro,
+    porque está fuera de la web.
+
+  Después, en la lección, elegís el archivo en «Video del servidor».
+- **Formato:** MP4 (H.264 + AAC), 720p. Con [HandBrake](https://handbrake.fr/) (gratis):
+  preset *Fast 720p30* y la casilla **Web Optimized** marcada, que hace que empiece a
+  reproducirse antes de bajar todo. Ocupa unos 5 a 10 MB por minuto.
+- **Nombres:** usá nombres claros con número de orden, como `01 Bienvenida.mp4`.
+- **Espacio:** con 50 GB de hosting entran decenas de horas de video. Revisá el espacio usado
+  en el panel de Ferozo. El backup por email **no** incluye los videos: guardá los originales.
+- **Comprobación obligatoria:** abrí `https://www.marudelatorre.com/cursos/privado/videos/`
+  más el nombre de un video. Tiene que dar **403**. Si se reproduce, el `.htaccess` no está
+  funcionando: avisá antes de vender.
+- Una transferencia «ilimitada» en hosting compartido suele estar sujeta a uso razonable.
+  Para pocas decenas de alumnas no debería ser un problema. Si el curso crece mucho, conviene
+  pasar a un servicio de video (Bunny o Vimeo).
+
+### YouTube o Vimeo
+
+- Un video **no listado** de YouTube **no está protegido**: cualquiera con el enlace lo ve, y
+  el reproductor tiene enlaces a youtube.com que no se pueden ocultar sin violar las
+  políticas de YouTube. Si igual lo usás, activá «Permitir inserción» en el video.
+- Vimeo (planes pagos) permite restringir el video a tu dominio.
 
 ## Instalación
 
@@ -114,6 +140,7 @@ Todo se guarda en archivos dentro de la carpeta privada:
 |---|---|
 | `cursos.json` | Cursos, módulos, lecciones, enlaces de video y ajustes del certificado |
 | `alumnos.json` | Accesos, vencimientos, lecciones vistas y certificados de cada persona |
+| `videos/` | Videos de las lecciones (subidos por FTP) |
 | `recursos/` | Archivos descargables |
 | `certificados/` | Imágenes de fondo de los certificados |
 | `woocommerce-pedidos.json`, `woocommerce-avisos.csv` | Pedidos procesados y avisos recibidos |
@@ -138,6 +165,7 @@ Todo se guarda en archivos dentro de la carpeta privada:
 index.php          Pedido del enlace de acceso y «Mis cursos»
 curso.php          Temario y lección (video, texto, archivos, marcar como vista)
 recurso.php        Entrega los archivos solo a quien tiene acceso vigente
+video.php          Entrega los videos del servidor solo a quien tiene acceso vigente
 certificado.php    Certificado (imagen + nombre, fecha y código)
 verificar.php      Verificación pública de un certificado por su código
 woocommerce.php    Recibe los webhooks de WooCommerce

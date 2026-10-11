@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Curso:   slug => [titulo, descripcion, acceso ('anual'|'ilimitado'), productos (IDs o SKU
  *          de WooCommerce), publicado, creado, modulos[]]
  * Módulo:  [id, titulo, lecciones[]]
- * Lección: [id, titulo, video (URL de YouTube o Vimeo), texto, recursos[]]
+ * Lección: [id, titulo, video (URL de YouTube o Vimeo, o «archivo:nombre.mp4» del servidor), texto, recursos[]]
  * Recurso: [id, nombre (el que ve la persona), archivo (nombre en privado/recursos/), tamano]
  */
 
@@ -92,7 +92,7 @@ function video_embed(string $url): string
     $url = trim($url);
     if (preg_match('~(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/|v/))([A-Za-z0-9_-]{11})~', $url, $m)) {
         // youtube-nocookie: no guarda cookies de seguimiento hasta que la persona da play.
-        return 'https://www.youtube-nocookie.com/embed/' . $m[1] . '?rel=0&modestbranding=1';
+        return 'https://www.youtube-nocookie.com/embed/' . $m[1] . '?rel=0';
     }
     if (preg_match('~vimeo\.com/(?:video/)?(\d+)(?:/([0-9a-f]+))?~', $url, $m)) {
         $h = $m[2] ?? '';
@@ -102,6 +102,40 @@ function video_embed(string $url): string
         return 'https://player.vimeo.com/video/' . $m[1] . ($h !== '' ? '?h=' . $h : '');
     }
     return '';
+}
+
+// ── Videos alojados en el propio servidor (privado/videos/) ──────────────
+// Se suben por FTP o con el administrador de archivos del hosting y se entregan con
+// video.php solo a quien tiene acceso vigente: copiar el enlace no sirve sin sesión.
+
+const CURSOS_DIR_VIDEOS = 'videos';
+const VIDEO_PREFIJO = 'archivo:';
+const VIDEO_TIPOS = ['mp4' => 'video/mp4', 'm4v' => 'video/mp4', 'webm' => 'video/webm'];
+
+function videos_dir(): string
+{
+    $dir = PRIVADO . '/' . CURSOS_DIR_VIDEOS;
+    asegurar_directorio($dir);
+    return $dir;
+}
+
+/** Videos subidos a la carpeta privada: nombre => tamaño en bytes, ordenados por nombre. */
+function videos_disponibles(): array
+{
+    $lista = [];
+    foreach (scandir(videos_dir()) ?: [] as $f) {
+        if (isset(VIDEO_TIPOS[strtolower(pathinfo($f, PATHINFO_EXTENSION))]) && is_file(videos_dir() . "/$f")) {
+            $lista[$f] = (int) filesize(videos_dir() . "/$f");
+        }
+    }
+    uksort($lista, 'strnatcasecmp');
+    return $lista;
+}
+
+/** Nombre del archivo si la lección usa un video del servidor; '' si usa YouTube/Vimeo o no tiene video. */
+function video_archivo(string $video): string
+{
+    return str_starts_with($video, VIDEO_PREFIJO) ? basename(substr($video, strlen(VIDEO_PREFIJO))) : '';
 }
 
 // ── Recursos descargables ─────────────────────────────────────────────────

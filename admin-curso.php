@@ -4,7 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/arranque.php';
 
 /*
- * Editor de un curso: datos generales, módulos y lecciones (video de YouTube o Vimeo,
+ * Editor de un curso: datos generales, módulos y lecciones (video del servidor, de YouTube o de Vimeo,
  * texto y archivos descargables) y certificado.
  * admin-curso.php?c=slug            → curso y temario
  * admin-curso.php?c=slug&l=leccion  → edición de una lección
@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     return $c;
                 });
                 $destino = $volver . '&l=' . $nueva;
-                $aviso = 'Lección creada. Pegá el enlace del video y guardá.';
+                $aviso = 'Lección creada. Elegí el video y guardá.';
                 break;
 
             case 'mover_leccion':
@@ -185,8 +185,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'guardar_leccion':
-                $video = trim(mb_substr((string) $_POST['video'], 0, 300));
-                if ($video !== '' && video_embed($video) === '') {
+                $video = trim(mb_substr((string) ($_POST['video'] ?? ''), 0, 300));
+                $archivoVideo = basename((string) ($_POST['video_archivo'] ?? ''));
+                if ($archivoVideo !== '') {
+                    // Un video del servidor tiene prioridad sobre el enlace.
+                    if (!isset(videos_disponibles()[$archivoVideo])) {
+                        throw new RuntimeException('Ese video ya no está en la carpeta de videos del servidor.');
+                    }
+                    $video = VIDEO_PREFIJO . $archivoVideo;
+                } elseif ($video !== '' && video_embed($video) === '') {
                     throw new RuntimeException('No reconozco ese enlace de video. Pegá el enlace de YouTube (youtu.be/… o youtube.com/watch?v=…) o de Vimeo.');
                 }
                 cambiar_leccion($slug, $id, function (array $l) use ($video) {
@@ -330,10 +337,30 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                 <input type="hidden" name="accion" value="guardar_leccion">
                 <input type="hidden" name="id" value="<?= e($leccion['id']) ?>">
                 <label>Título <input type="text" name="titulo" required maxlength="150" value="<?= e($leccion['titulo']) ?>"></label>
-                <label>Enlace del video <small>(YouTube «no listado» o Vimeo. Vacío = lección sin video)</small>
-                    <input type="url" name="video" maxlength="300" value="<?= e($leccion['video']) ?>" placeholder="https://youtu.be/…">
-                </label>
-                <?php if ($leccion['video'] !== '' && ($embed = video_embed($leccion['video'])) !== ''): ?>
+                <?php $archivoActual = video_archivo($leccion['video']); $disponibles = videos_disponibles(); ?>
+                <div class="editor__video-opciones">
+                    <label>Video del servidor <small>(protegido: solo lo ven alumnas con acceso)</small>
+                        <select name="video_archivo">
+                            <option value="">— Ninguno (usar el enlace de abajo) —</option>
+                            <?php foreach ($disponibles as $nombreVideo => $bytes): ?>
+                                <option value="<?= e($nombreVideo) ?>"<?= $nombreVideo === $archivoActual ? ' selected' : '' ?>><?= e($nombreVideo) ?> · <?= e(tamano_legible($bytes)) ?></option>
+                            <?php endforeach; ?>
+                            <?php if ($archivoActual !== '' && !isset($disponibles[$archivoActual])): ?>
+                                <option value="" selected>⚠ <?= e($archivoActual) ?> (ya no está en el servidor)</option>
+                            <?php endif; ?>
+                        </select>
+                    </label>
+                    <?php if (!$disponibles): ?>
+                        <p>Todavía no hay videos. Subilos por FTP o con el administrador de archivos a
+                            <code><?= e((USA_EXTERNA ? EXTERNA : 'cursos/privado') . '/' . CURSOS_DIR_VIDEOS . '/') ?></code> (MP4) y recargá esta página.</p>
+                    <?php endif; ?>
+                    <label>O enlace de YouTube / Vimeo <small>(un video no listado de YouTube se puede compartir)</small>
+                        <input type="url" name="video" maxlength="300" value="<?= e($archivoActual === '' ? $leccion['video'] : '') ?>" placeholder="https://youtu.be/…">
+                    </label>
+                </div>
+                <?php if ($archivoActual !== '' && isset($disponibles[$archivoActual])): ?>
+                    <div class="leccion__video leccion__video--mini"><video src="video.php?c=<?= e($slug) ?>&l=<?= e($leccion['id']) ?>" controls preload="metadata"></video></div>
+                <?php elseif ($leccion['video'] !== '' && ($embed = video_embed($leccion['video'])) !== ''): ?>
                     <div class="leccion__video leccion__video--mini"><iframe src="<?= e($embed) ?>" title="Vista previa" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
                 <?php endif; ?>
                 <label>Texto de la lección <small>(opcional: una línea en blanco separa párrafos; los enlaces se vuelven clicables)</small>
@@ -434,7 +461,7 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                         <?php foreach ($m['lecciones'] as $j => $l): ?>
                             <li class="fila-accion">
                                 <a href="<?= e($volver . '&l=' . rawurlencode($l['id'])) ?>"><?= e($l['titulo']) ?></a>
-                                <small><?= $l['video'] !== '' ? '🎬' : '⚠ sin video' ?><?= $l['recursos'] ? ' · 📎 ' . count($l['recursos']) : '' ?></small>
+                                <small><?= video_archivo($l['video']) !== '' ? '🔒🎬' : ($l['video'] !== '' ? '🎬' : '⚠ sin video') ?><?= $l['recursos'] ? ' · 📎 ' . count($l['recursos']) : '' ?></small>
                                 <form method="post" class="editor__orden">
                                     <?= $campoCsrf ?>
                                     <input type="hidden" name="accion" value="mover_leccion">

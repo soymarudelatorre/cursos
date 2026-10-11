@@ -109,7 +109,13 @@ pagina_inicio($curso['titulo']);
                 <p class="leccion__modulo"><?= e($leccion['modulo']) ?></p>
                 <h2><?= e($leccion['titulo']) ?></h2>
                 <?php $embed = video_embed((string) ($leccion['video'] ?? '')); ?>
-                <?php if ($embed !== ''): ?>
+                <?php if (video_archivo((string) ($leccion['video'] ?? '')) !== ''): ?>
+                    <div class="leccion__video">
+                        <?php /* Sin botón de descarga ni menú del botón derecho: desalienta la descarga, no la impide. */ ?>
+                        <video src="video.php?c=<?= e($slug) ?>&l=<?= e($leccion['id']) ?>" controls preload="metadata" playsinline
+                            controlslist="nodownload" disablepictureinpicture oncontextmenu="return false"></video>
+                    </div>
+                <?php elseif ($embed !== ''): ?>
                     <div class="leccion__video">
                         <iframe src="<?= e($embed) ?>" title="<?= e($leccion['titulo']) ?>" loading="lazy"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
