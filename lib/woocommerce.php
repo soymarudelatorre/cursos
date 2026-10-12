@@ -107,7 +107,7 @@ function woo_procesar(array $pedido): string
     if ($invitar) {
         try {
             foreach ($invitar as $slug) {
-                enviar_invitacion($email, $nombre, curso($slug), alumno($email)['cursos'][$slug]['hasta'] ?? null);
+                enviar_invitacion($email, $nombre, curso($slug), hasta_efectiva(alumno($email)['cursos'][$slug] ?? null, curso($slug)));
             }
             $texto .= ' y se envió la invitación';
         } catch (Throwable $ex) {

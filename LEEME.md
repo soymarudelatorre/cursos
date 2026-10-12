@@ -10,7 +10,8 @@ mismo acceso por email que el portal de guías y el Diagnóstico Tech. Reemplaza
 - **Acceso sin contraseña.** La alumna escribe su email y recibe un enlace que vale 24 horas.
   La sesión queda abierta 30 días (`dias_sesion`).
 - **Duración del acceso por curso:** 12 meses desde la fecha de pago, o sin vencimiento
-  («mientras el curso esté disponible»). Al vencer, el curso se ve en «Mis cursos» como
+  («mientras el curso esté disponible»). Si el curso es sin vencimiento, no se aplica ninguna
+  fecha, aunque la persona tenga una guardada. Al vencer, el curso se ve en «Mis cursos» como
   vencido y no se puede abrir.
 - **Progreso guardado.** Cada lección se marca como vista. Hay una barra de avance, la opción
   «Continuar» donde quedó y mensajes de hito al 25, 50, 75 y 100 %, que reconocen el avance

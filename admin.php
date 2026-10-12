@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 foreach ($agregados as $em => $nombre) {
                     $a = alumno($em);
                     try {
-                        enviar_invitacion($em, $nombre !== '' ? $nombre : (string) ($a['nombre'] ?? ''), $curso, $a['cursos'][$slug]['hasta'] ?? null);
+                        enviar_invitacion($em, $nombre !== '' ? $nombre : (string) ($a['nombre'] ?? ''), $curso, hasta_efectiva($a['cursos'][$slug] ?? null, $curso));
                     } catch (Throwable $ex) {
                         $fallaron[] = "$em (" . $ex->getMessage() . ')';
                     }
@@ -91,11 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['reenviar'])) {
             $a = alumno($em);
             $cursoR = curso($slug);
-            if (!$a || !$cursoR || acceso_estado($a['cursos'][$slug] ?? null) !== 'activo') {
+            if (!$a || !$cursoR || acceso_estado($a['cursos'][$slug] ?? null, $cursoR) !== 'activo') {
                 $aviso = [false, "No se reenvió: $em no tiene acceso vigente a ese curso."];
             } else {
                 try {
-                    enviar_invitacion($em, (string) ($a['nombre'] ?? ''), $cursoR, $a['cursos'][$slug]['hasta'] ?? null);
+                    enviar_invitacion($em, (string) ($a['nombre'] ?? ''), $cursoR, hasta_efectiva($a['cursos'][$slug] ?? null, $cursoR));
                     $aviso = [true, "Se reenvió el email de acceso a $em."];
                 } catch (Throwable $ex) {
                     $aviso = [false, "No se pudo enviar el email a $em: " . $ex->getMessage()];
@@ -166,8 +166,9 @@ foreach ($alumnos as $em => $a) {
         $vistas = $a['progreso'][$slug] ?? [];
         $filas[] = [
             'email' => $em, 'nombre' => nombre_certificado($a), 'confirmado' => nombre_confirmado($a), 'slug' => $slug,
-            'curso' => $c['titulo'] ?? "($slug, borrado)", 'desde' => (string) $acceso['desde'], 'hasta' => $acceso['hasta'],
-            'origen' => (string) $acceso['origen'], 'pedido' => (string) ($acceso['pedido'] ?? ''), 'estado' => acceso_estado($acceso),
+            'curso' => $c['titulo'] ?? "($slug, borrado)", 'desde' => (string) $acceso['desde'], 'hasta' => hasta_efectiva($acceso, $c),
+            'hasta_guardada' => $acceso['hasta'], 'ilimitado' => curso_ilimitado($c),
+            'origen' => (string) $acceso['origen'], 'pedido' => (string) ($acceso['pedido'] ?? ''), 'estado' => acceso_estado($acceso, $c),
             'hechas' => $hechas, 'total' => $total, 'pct' => $pct, 'ultima_actividad' => $vistas ? max($vistas) : '',
             'certificado' => (string) ($a['certificado'][$slug]['fecha'] ?? ''), // fecha en que completó el curso
         ];
@@ -328,8 +329,12 @@ pagina_inicio('Panel');
                                     <input type="hidden" name="csrf" value="<?= e($csrf) ?>">
                                     <input type="hidden" name="acceso_email" value="<?= e($f['email']) ?>">
                                     <input type="hidden" name="acceso_curso" value="<?= e($f['slug']) ?>">
-                                    <input type="date" name="hasta" value="<?= e((string) $f['hasta']) ?>" aria-label="Vencimiento" title="Vencimiento (vacío = sin vencimiento)">
-                                    <button class="boton boton--contorno boton--mini" type="submit" title="Guardar la fecha de vencimiento">Guardar</button>
+                                    <?php if ($f['ilimitado']): ?>
+                                        <span class="tabla__sin-vencimiento" title="El curso es sin vencimiento: no se aplica ninguna fecha<?= $f['hasta_guardada'] ? ' (la guardada, ' . e(fecha_corta($f['hasta_guardada'])) . ', vuelve a valer si el curso pasa a 12 meses)' : '' ?>">∞ Sin vencimiento</span>
+                                    <?php else: ?>
+                                        <input type="date" name="hasta" value="<?= e((string) $f['hasta']) ?>" aria-label="Vencimiento" title="Vencimiento (vacío = sin vencimiento)">
+                                        <button class="boton boton--contorno boton--mini" type="submit" title="Guardar la fecha de vencimiento">Guardar</button>
+                                    <?php endif; ?>
                                     <?php if ($f['estado'] === 'activo'): ?>
                                         <button class="boton boton--contorno boton--mini" type="submit" name="reenviar" value="1" onclick="return confirm('¿Reenviar el email de acceso a <?= e($f['email']) ?>?')" title="Reenviar el email de acceso (un enlace nuevo, válido por <?= DIAS_INVITACION ?> días)">✉ Reenviar</button>
                                     <?php endif; ?>

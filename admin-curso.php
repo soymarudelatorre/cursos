@@ -672,7 +672,7 @@ pagina_inicio('Editar · ' . $curso['titulo']);
                     <label class="check"><input type="checkbox" name="publicado" value="1"<?= !empty($curso['publicado']) ? ' checked' : '' ?>> Publicado (las alumnas con acceso lo pueden abrir)</label>
                     <button class="boton boton--mini" type="submit">Guardar</button>
                 </form>
-                <p class="nota">Cambiar la duración no modifica los accesos ya dados: cada uno conserva su fecha.</p>
+                <p class="nota">«Sin vencimiento» vale para todas las personas del curso, aunque tengan una fecha guardada. Si después lo pasás a 12 meses, vuelve a valer la fecha de cada una.</p>
             </div>
 
             <div class="tarjeta-panel" id="certificado">

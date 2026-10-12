@@ -98,8 +98,24 @@ function alumno_cambiar_hasta(string $email, string $slug, ?string $hasta): void
     });
 }
 
-/** 'activo', 'vencido', 'revocado' o 'sin acceso'. */
-function acceso_estado(?array $acceso): string
+/** El curso está configurado «sin vencimiento»: ninguna fecha de vencimiento lo cierra. */
+function curso_ilimitado(?array $curso): bool
+{
+    return $curso !== null && ($curso['acceso'] ?? 'anual') === 'ilimitado';
+}
+
+/**
+ * Vencimiento que rige: null si el curso es sin vencimiento, aunque la persona tenga una fecha
+ * guardada (de cuando el curso era de 12 meses). La fecha no se borra: si el curso vuelve a
+ * 12 meses, vuelve a valer.
+ */
+function hasta_efectiva(?array $acceso, ?array $curso = null): ?string
+{
+    return curso_ilimitado($curso) ? null : ($acceso['hasta'] ?? null);
+}
+
+/** 'activo', 'vencido', 'revocado' o 'sin acceso'. Con el curso, respeta «sin vencimiento». */
+function acceso_estado(?array $acceso, ?array $curso = null): string
 {
     if (!$acceso) {
         return 'sin acceso';
@@ -107,7 +123,8 @@ function acceso_estado(?array $acceso): string
     if (!empty($acceso['revocado'])) {
         return 'revocado';
     }
-    return ($acceso['hasta'] === null || $acceso['hasta'] >= date('Y-m-d')) ? 'activo' : 'vencido';
+    $hasta = hasta_efectiva($acceso, $curso);
+    return ($hasta === null || $hasta >= date('Y-m-d')) ? 'activo' : 'vencido';
 }
 
 /** Cursos que ve la persona: los que compró (activos o no) y, si es de prueba, todos los publicados. */
@@ -122,6 +139,7 @@ function cursos_de(string $email, ?array $alumno): array
             $acceso = ['desde' => date('Y-m-d'), 'hasta' => null, 'origen' => 'prueba', 'pedido' => '', 'revocado' => false];
         }
         if ($acceso) {
+            $acceso['hasta'] = hasta_efectiva($acceso, $c);
             $lista[$slug] = ['curso' => $c + ['slug' => $slug], 'acceso' => $acceso, 'estado' => acceso_estado($acceso)];
         }
     }
@@ -300,7 +318,7 @@ function estrellas_texto(float $promedio): string
 function certificado_disponible(?array $alumno, string $slug): bool
 {
     return !empty($alumno['certificado'][$slug])
-        && acceso_estado($alumno['cursos'][$slug] ?? null) !== 'revocado';
+        && acceso_estado($alumno['cursos'][$slug] ?? null) !== 'revocado'; // la baja no depende del vencimiento
 }
 
 function asegurar_certificado(string $email, array $curso): ?array

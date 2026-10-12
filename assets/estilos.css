@@ -767,3 +767,4 @@ body > main { flex: 1 0 auto; }
 .curso-tarjeta__descripcion p { margin: 0 0 8px; }
 .curso-tarjeta__descripcion ul, .leccion__texto ul { margin: 0 0 10px; padding-left: 20px; }
 .curso-tarjeta__descripcion strong { color: var(--texto); }
+.tabla__sin-vencimiento { display: inline-block; min-width: 200px; color: var(--suave); font-size: .8rem; cursor: help; }
