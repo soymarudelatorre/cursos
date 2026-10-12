@@ -86,6 +86,35 @@ function panel_barra(string $titulo, string $extra = ''): void
                 document.addEventListener('DOMContentLoaded', function () { window.scrollTo(0, g.y); });
             }
         } catch (e) {}
+        // Cada tarjeta se pliega tocando su título; se recuerda en este navegador.
+        document.addEventListener('DOMContentLoaded', function () {
+            var guardadas = {};
+            try { guardadas = JSON.parse(localStorage.getItem('cursos_panel_plegadas') || '{}'); } catch (e) {}
+            document.querySelectorAll('.tarjeta-panel').forEach(function (tarjeta, i) {
+                var cabecera = tarjeta.querySelector(':scope > .tarjeta-panel__cabecera, :scope > h2');
+                if (!cabecera) return;
+                var titulo = (cabecera.matches('h2') ? cabecera : cabecera.querySelector('h2') || cabecera).firstChild.textContent.trim();
+                var id = location.pathname.split('/').pop() + ':' + (tarjeta.id || titulo || i);
+                var boton = document.createElement('button');
+                boton.type = 'button'; boton.className = 'plegar'; boton.title = 'Mostrar u ocultar';
+                boton.innerHTML = '<span aria-hidden="true">▾</span>';
+                cabecera.classList.add('plegable'); cabecera.appendChild(boton);
+                function poner(cerrada) {
+                    tarjeta.classList.toggle('tarjeta-panel--cerrada', cerrada);
+                    boton.setAttribute('aria-expanded', cerrada ? 'false' : 'true');
+                    boton.setAttribute('aria-label', (cerrada ? 'Mostrar ' : 'Ocultar ') + titulo);
+                }
+                poner(!!guardadas[id]);
+                cabecera.addEventListener('click', function (ev) {
+                    // Los campos y botones propios de la cabecera (buscar, crear curso…) siguen funcionando.
+                    if (ev.target.closest('input, select, textarea, a, form, .segmentos, button:not(.plegar)')) return;
+                    var cerrada = !tarjeta.classList.contains('tarjeta-panel--cerrada');
+                    poner(cerrada);
+                    if (cerrada) guardadas[id] = 1; else delete guardadas[id];
+                    try { localStorage.setItem('cursos_panel_plegadas', JSON.stringify(guardadas)); } catch (e) {}
+                });
+            });
+        });
         document.addEventListener('submit', function (ev) {
             if (ev.defaultPrevented) return;
             try { sessionStorage.setItem(clave, JSON.stringify({ url: aqui, y: window.scrollY, t: Date.now() })); } catch (e) {}

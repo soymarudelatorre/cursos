@@ -768,3 +768,13 @@ body > main { flex: 1 0 auto; }
 .curso-tarjeta__descripcion ul, .leccion__texto ul { margin: 0 0 10px; padding-left: 20px; }
 .curso-tarjeta__descripcion strong { color: var(--texto); }
 .tabla__sin-vencimiento { display: inline-block; min-width: 200px; color: var(--suave); font-size: .8rem; cursor: help; }
+
+/* Tarjetas del panel plegables: se tocan por el título */
+.plegable { cursor: pointer; user-select: none; position: relative; padding-right: 52px !important; }
+.tarjeta-panel > h2.plegable { display: block; }
+.plegar { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border: 0; border-radius: 50%; background: color-mix(in srgb, #fff 18%, transparent); color: #fff; font-size: 1rem; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.plegar:hover { background: color-mix(in srgb, #fff 32%, transparent); }
+.plegar span { transition: transform .2s ease; }
+.tarjeta-panel--cerrada .plegar span { transform: rotate(-90deg); }
+.tarjeta-panel--cerrada > :not(.tarjeta-panel__cabecera):not(h2) { display: none !important; }
+.tarjeta-panel--cerrada > .tarjeta-panel__cabecera, .tarjeta-panel--cerrada > h2 { margin-bottom: -16px !important; border-bottom: 0; }
