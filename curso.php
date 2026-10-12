@@ -41,8 +41,11 @@ if (!$vistaPrevia && $_SERVER['REQUEST_METHOD'] === 'POST' && csrf_valido()) {
         exit;
     }
     if (in_array($id, $ids, true)) {
+        // Solo se marca como vista: una lección vista no vuelve a «pendiente».
         $vista = ($_POST['accion'] ?? '') === 'vista';
-        marcar_leccion($email, $curso, $id, $vista);
+        if ($vista) {
+            marcar_leccion($email, $curso, $id, true);
+        }
         $siguiente = $ids[array_search($id, $ids, true) + 1] ?? null;
         $destino = $vista && $siguiente ? $siguiente : $id;
         if ($vista) {
@@ -233,7 +236,6 @@ echo panel_aviso(panel_leer_flash());
                             <input type="hidden" name="leccion" value="<?= e($leccion['id']) ?>">
                             <?php if (isset($vistas[$leccion['id']])): ?>
                                 <span class="leccion__vista">✓ Lección vista</span>
-                                <button class="enlace-boton" type="submit" name="accion" value="pendiente">Marcar como pendiente</button>
                             <?php else: ?>
                                 <button class="boton boton--chico" type="submit" name="accion" value="vista"><?= $posterior ? 'Marcar como vista y seguir →' : 'Marcar como vista ✓' ?></button>
                             <?php endif; ?>
