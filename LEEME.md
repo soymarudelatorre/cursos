@@ -18,7 +18,7 @@ mismo acceso por email que el portal de guías y el Diagnóstico Tech. Reemplaza
 - **Certificado (opcional por curso)** al completar el 100 %: tu imagen de fondo con el nombre y
   la fecha escritos encima, que acomodás arrastrándolos en el ejemplo. Aparece al final del
   temario y en «Mis cursos». Se guarda como PDF desde el navegador y queda disponible aunque el
-  acceso al curso venza. Si el curso no tiene imagen, no entrega certificado.
+  acceso al curso venza, pero no si se da de baja (reembolso, cancelación o «Quitar»). Si el curso no tiene imagen, no entrega certificado.
 - **Calificación con estrellas** (1 a 5) en cada lección y ranking general en el panel.
 - **Bonos:** un módulo se puede convertir en «Bono» (🎁): no tiene lecciones, solo archivos para
   descargar desde el temario. No cuenta para el progreso ni para el certificado.
@@ -26,8 +26,8 @@ mismo acceso por email que el portal de guías y el Diagnóstico Tech. Reemplaza
   el de la compra) y ve cómo va a salir. Después ya no lo puede cambiar; si hay un error, lo corregís
   vos en el panel («Editar nombre del certificado», en la tabla de alumnas).
 - **Compras por WooCommerce** (webhook): el pago habilita el curso y envía el email de
-  bienvenida. Un reembolso o una cancelación quitan el acceso, pero el progreso y el
-  certificado se conservan.
+  bienvenida. Un reembolso o una cancelación quitan el acceso y también la descarga del
+  certificado (el progreso se guarda: si restaurás el acceso, vuelve todo).
 - **Panel** (`admin.php`) para crear cursos, cargar lecciones y archivos, habilitar o quitar
   accesos, cambiar vencimientos, ver el avance de cada alumna, exportar a CSV y enviar un
   backup por email.

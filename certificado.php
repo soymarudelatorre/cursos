@@ -14,7 +14,7 @@ $slug = (string) ($_GET['c'] ?? '');
 $curso = curso($slug);
 $email = sesion();
 $alumno = $email ? alumno($email) : null;
-$cert = $alumno['certificado'][$slug] ?? null;
+$cert = certificado_disponible($alumno, $slug) ? $alumno['certificado'][$slug] : null;
 $ejemplo = isset($_GET['vista']) && es_admin();
 $imagen = (string) ($curso['certificado']['imagen'] ?? '');
 $rutaImagen = $imagen !== '' ? certificados_dir() . '/' . basename($imagen) : '';

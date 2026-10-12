@@ -292,6 +292,17 @@ function estrellas_texto(float $promedio): string
  * Garantiza que quien tiene el 100 % tenga su código de certificado (por ejemplo, si llegó al
  * 100 % porque se borró una lección que le faltaba). Devuelve los datos del certificado o null.
  */
+/**
+ * El certificado se puede ver y descargar mientras el acceso no esté dado de baja
+ * (reembolso, cancelación o «Quitar» en el panel). Un acceso vencido lo conserva: el curso
+ * se pagó y se terminó. Si se restaura el acceso, el certificado vuelve a estar disponible.
+ */
+function certificado_disponible(?array $alumno, string $slug): bool
+{
+    return !empty($alumno['certificado'][$slug])
+        && acceso_estado($alumno['cursos'][$slug] ?? null) !== 'revocado';
+}
+
 function asegurar_certificado(string $email, array $curso): ?array
 {
     $slug = $curso['slug'];

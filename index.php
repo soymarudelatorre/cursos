@@ -222,7 +222,7 @@ echo panel_aviso(panel_leer_flash());
                     <?php if ($activo): ?>
                         <a class="boton" href="curso.php?c=<?= e($slug) ?><?= $ultima !== '' ? '&l=' . e($ultima) : '' ?>"><?= $hechas === 0 ? 'Empezar' : ($pct === 100 ? 'Repasar' : 'Continuar') ?></a>
                     <?php endif; ?>
-                    <?php if (!empty($alumno['certificado'][$slug]) && !empty($c['certificado']['imagen'])): ?>
+                    <?php if (certificado_disponible($alumno, $slug) && !empty($c['certificado']['imagen'])): ?>
                         <a class="boton boton--contorno" href="certificado.php?c=<?= e($slug) ?>">🏆 Ver certificado</a>
                     <?php endif; ?>
                 </div>
