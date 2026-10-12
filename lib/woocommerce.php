@@ -70,7 +70,9 @@ function woo_procesar(array $pedido): string
     }
     $slugs = woo_cursos_del_pedido($pedido);
     if (!$slugs) {
-        return 'ignorado: no incluye productos asociados a un curso';
+        // Se anotan los productos del pedido para ver enseguida si falta asociar alguno a un curso.
+        $productos = array_map(fn ($i) => '«' . mb_substr((string) ($i['name'] ?? '?'), 0, 60) . '» (ID ' . ($i['product_id'] ?? '?') . ')', (array) ($pedido['line_items'] ?? []));
+        return 'ignorado: no incluye productos asociados a un curso' . ($productos ? '. Productos: ' . implode(', ', $productos) : '');
     }
 
     $invitar = [];
