@@ -136,6 +136,9 @@ Reglas:
 - Cada pedido se procesa una sola vez, aunque WooCommerce avise varias veces.
 - Si la misma persona vuelve a comprar el curso, el acceso se reemplaza por el nuevo, salvo
   que el que tiene dure más. Las renovaciones que suman tiempo quedan para una fase 2.
+- Un reembolso o una cancelación quitan el acceso curso por curso, salvo que la persona tenga
+  **otro pedido pagado** con ese mismo curso: en ese caso el acceso sigue por ese pedido (con su
+  vencimiento) y la tabla lo anota («se mantiene … por el pedido #…»).
 - Si el webhook responde con error 5 veces seguidas, WooCommerce lo desactiva. La tabla del
   panel muestra el último aviso recibido.
 

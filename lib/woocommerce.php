@@ -84,7 +84,7 @@ function woo_procesar(array $pedido): string
                 alumno_habilitar($email, $nombre, $slug, $fecha, 'woocommerce', $id);
             }
             $invitar = $slugs;
-            $pedidos[$id] = ['email' => $email, 'cursos' => $slugs, 'accion' => 'habilitado', 'fecha' => date('Y-m-d H:i:s')];
+            $pedidos[$id] = ['email' => $email, 'cursos' => $slugs, 'accion' => 'habilitado', 'fecha' => date('Y-m-d H:i:s'), 'pagado' => $fecha];
             return [$pedidos, 'habilitado: ' . implode(', ', $slugs) . " (pagado el $fecha)"];
         }
         if (in_array($estado, WOO_ANULADO, true) && $previo === 'habilitado') {
@@ -94,12 +94,25 @@ function woo_procesar(array $pedido): string
                 return [$pedidos, 'pedido anulado: no se quitó el acceso (quitar_en_reembolso desactivado)'];
             }
             $quitados = [];
+            $mantenidos = [];
             foreach ((array) $pedidos[$id]['cursos'] as $slug) {
                 // Solo si el acceso vigente vino de este pedido (no de otra compra o de una carga manual).
-                if ((string) (alumno($email)['cursos'][$slug]['pedido'] ?? '') === $id) {
+                if ((string) (alumno($email)['cursos'][$slug]['pedido'] ?? '') !== $id) {
+                    continue;
+                }
+                // Curso por curso: si otro pedido pagado de la misma persona también incluye este
+                // curso, el acceso sigue por ese pedido (por ejemplo, un curso repetido en dos combos).
+                $otro = woo_otro_pedido_vigente($pedidos, $email, $slug, $id);
+                if ($otro !== null) {
+                    woo_pasar_acceso_a_pedido($email, $slug, $otro, (string) ($pedidos[$otro]['pagado'] ?? ''));
+                    $mantenidos[] = "$slug (sigue por el pedido #$otro)";
+                } else {
                     alumno_revocar($email, $slug);
                     $quitados[] = $slug;
                 }
+            }
+            if ($mantenidos) {
+                return [$pedidos, 'pedido anulado: ' . ($quitados ? 'se quitó el acceso a ' . implode(', ', $quitados) . ' · ' : '') . 'se mantiene ' . implode(', ', $mantenidos)];
             }
             return [$pedidos, 'pedido anulado: ' . ($quitados ? 'se quitó el acceso a ' . implode(', ', $quitados) : 'no había accesos de este pedido para quitar')];
         }
@@ -122,4 +135,36 @@ function woo_procesar(array $pedido): string
 function woo_registrar(string $pedido, string $estado, string $email, string $resultado): void
 {
     registrar(WOO_ARCHIVO_AVISOS, ['fecha' => date('Y-m-d H:i:s'), 'pedido' => $pedido, 'estado' => $estado, 'email' => $email, 'resultado' => $resultado]);
+}
+
+/** Otro pedido de la misma persona, todavía habilitado (no anulado), que incluye el curso. */
+function woo_otro_pedido_vigente(array $pedidos, string $email, string $slug, string $excepto): ?string
+{
+    foreach ($pedidos as $numero => $p) {
+        if ((string) $numero !== $excepto && ($p['email'] ?? '') === $email
+            && ($p['accion'] ?? '') === 'habilitado' && in_array($slug, (array) ($p['cursos'] ?? []), true)) {
+            return (string) $numero;
+        }
+    }
+    return null;
+}
+
+/**
+ * El acceso pasa a depender de otro pedido: se toma su fecha de pago para el vencimiento.
+ * (Los pedidos procesados antes de guardar la fecha de pago conservan el vencimiento actual.)
+ */
+function woo_pasar_acceso_a_pedido(string $email, string $slug, string $pedido, string $pagado): void
+{
+    $curso = curso($slug);
+    alumno_cambiar($email, function (array $a) use ($slug, $pedido, $pagado, $curso) {
+        if (isset($a['cursos'][$slug])) {
+            $a['cursos'][$slug]['pedido'] = $pedido;
+            $a['cursos'][$slug]['revocado'] = false;
+            if ($pagado !== '' && $curso) {
+                $a['cursos'][$slug]['desde'] = $pagado;
+                $a['cursos'][$slug]['hasta'] = calcular_hasta($curso, $pagado);
+            }
+        }
+        return $a;
+    });
 }
